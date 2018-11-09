@@ -1,0 +1,6 @@
+- hosts: all
+  gather_facts: no
+
+  tasks: 
+   - name: create vm in hypervisor
+     command: virt-clone --original VM1 --name VM131 --auto-clone
