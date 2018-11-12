@@ -8,15 +8,9 @@ from collections import defaultdict
 listOfAWSServers = []
 listOfNCServers = []
 listOfNCServersIP = []
-ipOfHypervisor1 = ''
-ipOfHypervisor2 = ''
-userNameOfHypervisor1 = ''
-passwordOfHypervisor1 = ''
-userNameOfHypervisor2= ''
-passwordOfHypervisor2 = ''
 listOfLB = []
 #load balancer common credentials
-
+dictOfHypervisorDetails = {}
 lbUserName = ''
 lbPassword = ''
 
@@ -35,9 +29,15 @@ def initialize():
     listOfLB = ['LB101', 'LB102', 'LB201','LB202']
     
     getInputsFromUser()
+    ### setting up network
+    createCustomerNetwork()
+    #createManagementNetwork()
+    ## need to crerate 2 tunnels 
+    #createTunnelInHypervisor()
+    #createTunnelInHypervisor()
+
     # to create 10 AWS load balancers
     # createAWSLoadBalancers()
-
     # to create 10 NC load balancers
 
 
@@ -48,12 +48,6 @@ def initialize():
     ####
     #writeServerIpsfile();   
     #transferFileToLB()
-    ### setting up network
-    #createCustomerNetwork()
-    #createManagementNetwork()
-    ## need to crerate 2 tunnels 
-    #createTunnelInHypervisor()
-    #createTunnelInHypervisor()
 
 def getIpsFromNCHypervisor():
 	global dictOfNCServersIps 
@@ -87,9 +81,54 @@ def createAWSLoadBalancers():
     print("YET TO BE IMPLEMENTED")
     return
 
+def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor):
+    print("creating bridge in hypervisor: " + ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
+    ssh = getSshInstanceFromParamiko(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
+    #write vxlan.xml in /home/ece792
+
+    # details for copying file 
+    currentWorkingDirectory = os.getcwd()
+    destDirectory = '/home/ece792' 
+    fileName = 'vxlan1.xml'
+    cpFileToVM(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, currentWorkingDirectory, destDirectory, fileName )
+    # wait for scp to finish
+    time.sleep(5)
+
+    # add bridge to hypervisor 
+    command_to_create_bridge = 'sudo -S brctl addbr vxlanbr1'
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_create_bridge)
+    ssh_stdin.write( passwordOfHypervisor +'\n')
+    ssh_stdin.flush()
+    print(ssh_stdout.read(), ssh_stderr.read())
+
+    #create network  
+    command_to_define_network = 'virsh net-define /home/ece792/vxlan1.xml'
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_define_network)
+    print(ssh_stdout.read(), ssh_stderr.read())
+
+    #start network 
+    command_to_start_network = 'virsh net-start vxlan1'
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_network)
+    print(ssh_stdout.read())
+
+    #close connection hypervisor	
+    ssh.close()
 
 def createCustomerNetwork():
-	print('Yet ot be implemented')
+    global dictOfHypervisorDetails
+    print("printing hyp details : ", dictOfHypervisorDetails)
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+
+    #create network in hypervisor1
+    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+    #create network in hypervisor2
+    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
 
 def createManagementNetwork():
 	print('Yet to be implemented')
@@ -125,15 +164,23 @@ def createLBInNCHypervisor(nameOfLoadBalancer, ssh):
     print ("load bancer vim "+ nameOfLoadBalancer + "started succesfully.")
     return
 
-def createNCLoadBalancers():
+def getSshInstanceFromParamiko(ipaddress, username, password):
+    ssh = paramiko.SSHClient()
+    ssh.load_system_host_keys()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(ipaddress, port=22, username=username, password=password)
+    return ssh
+
+
+def createNCLoadBalancers(ssh):
     # create lbs in hypervisor
     # wait for 10 s
     # get Ips from respective VMs
     global ipOfHypervisor, userNameOfHypervisor, passwordOfHypervisor, listOfLB
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(ipOfHypervisor, port=22, username=userNameOfHypervisor, password=passwordOfHypervisor)
+    #ssh = paramiko.SSHClient()
+    #ssh.load_system_host_keys()
+    #ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    #ssh.connect(ipOfHypervisor, port=22, username=userNameOfHypervisor, password=passwordOfHypervisor)
 
 
     for nameOfLoadBalancer in listOfLB:
@@ -173,14 +220,14 @@ def getHypervisorDetailsFromUser():
     return inputDetailsArray
 	
 def setGlobalHypervisorDetails(hypervisor1Details, hypervisor2Details):
-    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2  
-    ipOfHypervisor1 = hypervisor1Details[0].strip()
-    userNameOfHypervisor1 = hypervisor1Details[1].strip()
-    passwordOfHypervisor1 = hypervisor1Details[2].strip()
+    global dictOfHypervisorDetails
+    dictOfHypervisorDetails['ipOfHypervisor1'] = hypervisor1Details[0].strip()
+    dictOfHypervisorDetails['userNameOfHypervisor1'] = hypervisor1Details[1].strip()
+    dictOfHypervisorDetails['passwordOfHypervisor1'] = hypervisor1Details[2].strip()
     
-    ipOfHypervisor2 = hypervisor2Details[0].strip()
-    userNameOfHypervisor2 = hypervisor2Details[1].strip()
-    passwordOfHypervisor2 = hypervisor2Details[2].strip()
+    dictOfHypervisorDetails['ipOfHypervisor2'] = hypervisor2Details[0].strip()
+    dictOfHypervisorDetails['userNameOfHypervisor2'] = hypervisor2Details[1].strip()
+    dictOfHypervisorDetails['passwordOfHypervisor2'] = hypervisor2Details[2].strip()
 
 def setServerDetailsFromUser():
     global mapOfHypervisorToServer	
@@ -222,6 +269,11 @@ def writeServerIpsfile():
         csv_writer = csv.writer(csv_write_file, delimiter='\n')
         csv_writer.writerow(mapOfHypervisorToServer)              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
  	
+def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
+	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
+        print (command)
+        os.system(command)
+
 
 def transferFileToLB():
 	global dictOfNCServersIps, lbPassword, lbUserName
@@ -234,5 +286,3 @@ def transferFileToLB():
 
 if __name__ == "__main__":
 	initialize()
-
-	
