@@ -46,6 +46,15 @@ def initialize():
     ####
     writeServerIpsfile();   
     transferFileToLB()
+    ### setting up network
+    createCustomerNetwork()
+    createManagementNetwork()
+    ## need to crerate 2 tunnels 
+    createTunnelInHypervisor()
+    createTunnelInHypervisor()
+     
+
+
 
 def getIpsFromNCHypervisor():
 	global dictOfNCServersIps 
@@ -78,6 +87,21 @@ def getServerList():
 def createAWSLoadBalancers():
     print("YET TO BE IMPLEMENTED")
     return
+
+
+def createCustomerNetwork():
+	print('Yet ot be implemented')
+
+def createManagementNetwork():
+	print('Yet to be implemented')
+
+
+
+def createTunnelInHypervisor(nameOfHypervisor, userNameOfHypervisor, passwordOfHypervisor):
+	command_to_clone_lbs = 'virt-clone --original LB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_destroy_prev_lbs)
+	if (ssh_stderr.readlines() != {}):
+		print(ssh_stderr.readlines())
 
 def createLBInNCHypervisor(nameOfLoadBalancer, ssh):
     command_to_clone_lbs = 'virt-clone --original LB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
@@ -136,7 +160,7 @@ def getInputsFromUser():
     global ipOfHypervisor, userNameOfHypervisor, passwordOfHypervisor, listOfServers 
 
     #inputDetails = input("Enter ip address, username and password  of Hypervisor (space Separated): ")
-    #inputDetails = raw_input("Enter ip address, username and password  of Hypervisor (space Separated): ")
+    inputDetails = raw_input("Enter ip address, username and password  of Hypervisor (space Separated): ")
     inputDetails = '192.168.122.103 ece792 welcome1'
     inputDetailsArray = inputDetails.strip().split(" ")
     if(len(inputDetailsArray) != 3):
