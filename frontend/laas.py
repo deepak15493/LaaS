@@ -3,34 +3,36 @@ import paramiko
 import csv
 import libvirt
 import time
-
+from collections import defaultdict
  
 listOfAWSServers = []
 listOfNCServers = []
 listOfNCServersIP = []
-ipOfHypervisor = ''
-userNameOfHypervisor = ''
-passwordOfHypervisor = ''
+ipOfHypervisor1 = ''
+ipOfHypervisor2 = ''
+userNameOfHypervisor1 = ''
+passwordOfHypervisor1 = ''
+userNameOfHypervisor2= ''
+passwordOfHypervisor2 = ''
 listOfLB = []
 #load balancer common credentials
 
 lbUserName = ''
 lbPassword = ''
 
-listOfServers = []
+mapOfHypervisorToServer = defaultdict(list)
 
 dictOfNCServersIps = {}
-
 
 
 def initialize():
     print ("Initializing")
     #initialize lb credentials
-    global listOfLB, lbUserName, lbPassword
+    global listOfLB, lbUserName, lbPassword, mapOfHypervisorToServer
     lbUserName = 'root'
     lbPassword = 'tushar123'
 
-    listOfLB = ['LB101', 'LB102', 'LB103','LB104','LB105','LB106','LB107','LB108', 'LB109', 'LB110']
+    listOfLB = ['LB101', 'LB102', 'LB201','LB202']
     
     getInputsFromUser()
     # to create 10 AWS load balancers
@@ -41,20 +43,17 @@ def initialize():
 
     #### just for avoiding creation of multiple vms
     #createNCLoadBalancers()
-    getIpsFromNCHypervisor() 
-    writeLBsAndTheirIPsToFile()
+    #getIpsFromNCHypervisor() 
+    #writeLBsAndTheirIPsToFile()
     ####
-    writeServerIpsfile();   
-    transferFileToLB()
+    #writeServerIpsfile();   
+    #transferFileToLB()
     ### setting up network
-    createCustomerNetwork()
-    createManagementNetwork()
+    #createCustomerNetwork()
+    #createManagementNetwork()
     ## need to crerate 2 tunnels 
-    createTunnelInHypervisor()
-    createTunnelInHypervisor()
-     
-
-
+    #createTunnelInHypervisor()
+    #createTunnelInHypervisor()
 
 def getIpsFromNCHypervisor():
 	global dictOfNCServersIps 
@@ -156,12 +155,9 @@ def validateIpProvided(inputDetailsOfHypervisor):
     return 0;
 
 
-def getInputsFromUser():
-    global ipOfHypervisor, userNameOfHypervisor, passwordOfHypervisor, listOfServers 
-
-    #inputDetails = input("Enter ip address, username and password  of Hypervisor (space Separated): ")
+def getHypervisorDetailsFromUser():
     inputDetails = raw_input("Enter ip address, username and password  of Hypervisor (space Separated): ")
-    inputDetails = '192.168.122.103 ece792 welcome1'
+    #inputDetails = '192.168.122.103 ece792 welcome1'
     inputDetailsArray = inputDetails.strip().split(" ")
     if(len(inputDetailsArray) != 3):
         print("Invalid Number of Arguments.")
@@ -174,19 +170,44 @@ def getInputsFromUser():
     if(validateIpProvided(inputDetailsArray) != 0):
         print("Invalid ip provided")
         exit(1)
-
-    #  assigning valid ip to hypervisor
-    ipOfHypervisor = inputDetailsArray[0].strip()
-    userNameOfHypervisor = inputDetailsArray[1].strip()
-    passwordOfHypervisor = inputDetailsArray[2].strip()
-    
-    while(True):
-	serverDetails = raw_input("Enter ip address of web server space separated ( or Enter 1 when finished entering server details) ")
-	inputServerDetails = serverDetails.strip()
+    return inputDetailsArray
 	
+def setGlobalHypervisorDetails(hypervisor1Details, hypervisor2Details):
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2  
+    ipOfHypervisor1 = hypervisor1Details[0].strip()
+    userNameOfHypervisor1 = hypervisor1Details[1].strip()
+    passwordOfHypervisor1 = hypervisor1Details[2].strip()
+    
+    ipOfHypervisor2 = hypervisor2Details[0].strip()
+    userNameOfHypervisor2 = hypervisor2Details[1].strip()
+    passwordOfHypervisor2 = hypervisor2Details[2].strip()
+
+def setServerDetailsFromUser():
+    global mapOfHypervisorToServer	
+    while(True):
+	serverDetails = raw_input("Enter  Enter the hypervisor name (hypervisor1/hypervisor2) and ip address of web server space separated ( or Enter 1 when finished entering server details) ")
+	inputServerDetails = serverDetails.strip()
 	if(inputServerDetails == str(1)):
 		break
-	listOfServers.append(inputServerDetails)
+	inputServerDetailsArray = inputServerDetails.split(' ')
+        hypervisorName = inputServerDetailsArray[0]
+        ipOfServer = inputServerDetailsArray[1] 
+        print("hypervisor : " , hypervisorName, "ip: ", ipOfServer) 
+	mapOfHypervisorToServer[hypervisorName].append(ipOfServer)
+
+
+def getInputsFromUser():
+    # need to remove following 2 lines 
+   # inputDetails = '192.168.122.103 ece792 welcome1'
+    #hypervisor1Details = inputDetails.strip().split(" ")
+    hypervisor1Details = getHypervisorDetailsFromUser()
+    
+    #inputDetails1 = '192.168.122.58 ece792 EcE792net!'
+    #hypervisor2Details = inputDetails1.strip().split(" ")
+    hypervisor2Details = getHypervisorDetailsFromUser()
+   
+    setGlobalHypervisorDetails(hypervisor1Details, hypervisor2Details)
+    setServerDetailsFromUser()
 	
 def writeLBsAndTheirIPsToFile() :
     # writing server ip in file 
@@ -199,8 +220,7 @@ def writeServerIpsfile():
     with open('customer_vms.txt', mode='w') as csv_write_file:
         pass
         csv_writer = csv.writer(csv_write_file, delimiter='\n')
-        csv_writer.writerow(listOfServers)
-	
+        csv_writer.writerow(mapOfHypervisorToServer)              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
  	
 
 def transferFileToLB():
