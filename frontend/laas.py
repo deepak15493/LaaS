@@ -13,7 +13,8 @@ listOfLB = []
 dictOfHypervisorDetails = {}
 lbUserName = ''
 lbPassword = ''
-
+listOfHypervisor1LBs = []
+listOfHypervisor2LBs = []
 mapOfHypervisorToServer = defaultdict(list)
 
 dictOfNCServersIps = {}
@@ -22,32 +23,112 @@ dictOfNCServersIps = {}
 def initialize():
     print ("Initializing")
     #initialize lb credentials
-    global listOfLB, lbUserName, lbPassword, mapOfHypervisorToServer
+    global listOfHyperviser1LBs, listOfHyperviser2LBs, lbUserName, lbPassword, mapOfHypervisorToServer
     lbUserName = 'root'
     lbPassword = 'tushar123'
 
-    listOfLB = ['LB101', 'LB102', 'LB201','LB202']
+    listOfHyperviser2LBs = ['LB101', 'LB102'] [
+    listOfHyperviser2LBs = [ 'LB201','LB202']
     
     getInputsFromUser()
     ### setting up network
     createCustomerNetwork()
     #createManagementNetwork()
-    ## need to crerate 2 tunnels 
-    #createTunnelInHypervisor()
-    #createTunnelInHypervisor()
+ 
+    ### creating tunnels for both Mangement and data flow   
+    createTunnelsForManagementAndDataFlow()
 
-    # to create 10 AWS load balancers
+    ### create 4 load balancers in AWS
     # createAWSLoadBalancers()
-    # to create 10 NC load balancers
-
-
-    #### just for avoiding creation of multiple vms
-    #createNCLoadBalancers()
-    #getIpsFromNCHypervisor() 
+    
+    ### create 4 NC load balancers
+    handleCreationOfNCLoadBalancers( )
+    
+    ### attach load balancers to vxlan network
+    attachLBsToVxlanNetwork()
+    
+    ### get default ips of all load balancers
+    getIpsFromNCHypervisor()
+ 
     #writeLBsAndTheirIPsToFile()
     ####
     #writeServerIpsfile();   
     #transferFileToLB()
+
+
+def attachLBsToVxlanNetwork():
+    global dictOfHypervisorDetails, listOfHyperviser1LBs, listOfHyperviser2LBs
+    # get configuration details from global dict
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
+   
+    ### attach data network of vxlan 
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan1')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan1')
+    
+    ### attach management network of vxlan
+    #attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan2')
+    #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan2')
+
+    ## attach default network 
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan2')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan2')
+	
+    return
+
+
+def attachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, networkName):
+    # get Instance of ssh from paramiko
+    ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
+ 
+    for LBName in listOfHyperviserLBs:
+    	command_to_attach_iface = 'virsh attach-interface --domain '+ LBName + ' --type network --source '+ networkName +' --model virtio --config --live'
+    	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+    	print(ssh_stdout.read(), ssh_stderr.read())
+
+    return
+
+def handleCreationOfNCLoadBalancers():
+    global dictOfHypervisorDetails
+    # get configuration details from global dict
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
+    
+    listOfLBInHypervisor1 = ['LB101', 'LB102']
+    listOfLBInHypervisor2 = ['LB201', 'LB202']
+    ## create lbs in hypervisor 1
+    createNCLoadBalancers(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfLBInHypervisor1)
+    ## create lbs in hypervisor 2 
+    createNCLoadBalancers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfLBInHypervisor2)
+
+def createTunnelsForManagementAndDataFlow():
+    global dictOfHypervisorDetails
+    # get configuration details from global dict
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
+    
+    ## creating tunnel for data flow
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr1', 'vxlan101', 41)
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', 41)
+
+    ## creating tunnel for management of lbs
+    #createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
+    #createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
 
 def getIpsFromNCHypervisor():
 	global dictOfNCServersIps 
@@ -101,6 +182,13 @@ def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwo
     ssh_stdin.flush()
     print(ssh_stdout.read(), ssh_stderr.read())
 
+    # turn bridge iface up
+    command_to_turn_vxlanbr1_iface_up = 'sudo -S ip link set dev vxlanbr1 up'
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_turn_vxlanbr1_iface_up)
+    ssh_stdin.write( passwordOfHypervisor +'\n')
+    ssh_stdin.flush()
+    print(ssh_stdout.read(), ssh_stderr.read())
+
     #create network  
     command_to_define_network = 'virsh net-define /home/ece792/vxlan1.xml'
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_define_network)
@@ -135,31 +223,51 @@ def createManagementNetwork():
 
 
 
-def createTunnelInHypervisor(nameOfHypervisor, userNameOfHypervisor, passwordOfHypervisor):
-	command_to_clone_lbs = 'virt-clone --original LB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
-	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_destroy_prev_lbs)
-	if (ssh_stderr.readlines() != {}):
-		print(ssh_stderr.readlines())
+def createTunnelInHypervisor(ipaddr, username, password, vxlanBridge,vxlanName,tunnelID):
+        # get ssh instace from paramiko
+        ssh = getSshInstanceFromParamiko(ipaddr, username, password)
+
+	# commands to create tunnel 
+        command_to_create_tunnel = 'sudo -S ip link add name '+ vxlanName +' type vxlan id '+ tunnelID + ' dev ens4 remote '+ remoteIPAddr +' dstport 4098'
+	command_to_turn_vxlan_iface_up = 'sudo -S ip link set dev '+ vxlanName +' up'
+	command_to_add_vxlan_iface_to_vxlan_br = 'sudo -S  brctl addif '+ vxlanBridge +' ' + vxlanName
+
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_create_tunnel)
+        ssh_stdin.write( password+'\n')
+        ssh_stdin.flush()
+        print(ssh_stdout.read(), ssh_stderr.read())
+
+ 
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_turn_vxlan_iface_up)
+        ssh_stdin.write( password +'\n')
+        ssh_stdin.flush()
+        print(ssh_stdout.read(), ssh_stderr.read())
+
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_add_vxlan_iface_to_vxlan_br)
+        ssh_stdin.write( password +'\n')
+        ssh_stdin.flush()
+        print(ssh_stdout.read(), ssh_stderr.read())
+	return
+
+def destroyLBsIfExistsInHypervisor(ssh):
+    # commands to destroy vms	
+    command_to_destroy_prev_lbs = 'virsh destroy ' + nameOfLoadBalancer
+    command_to_undefine_prev_lbs = 'virsh undefine ' + nameOfLoadBalancer + ' --remove-all-storage'
+
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_destroy_prev_lbs)
+    print(ssh_stdout.readlines())
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_undefine_prev_lbs)
+    print(ssh_stdout.readlines())
+    return
 
 def createLBInNCHypervisor(nameOfLoadBalancer, ssh):
     command_to_clone_lbs = 'virt-clone --original LB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
-    command_to_destroy_prev_lbs = 'virsh destroy ' + nameOfLoadBalancer
-    command_to_undefine_prev_lbs = 'virsh undefine ' + nameOfLoadBalancer + ' --remove-all-storage'
     command_to_start_lb = 'virsh start ' + nameOfLoadBalancer
-
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_destroy_prev_lbs)
-    if (ssh_stderr.readlines() != {}):
-        print(ssh_stderr.readlines())
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_undefine_prev_lbs)
-    if (ssh_stderr.readlines() != {}):
-        print(ssh_stderr.readlines())
+    #destroyLBsIfExistsInHypervisor(ssh)
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_lbs)
-    if (ssh_stderr.readlines() != {}):
-        print(ssh_stderr.readlines())
-
+    print(ssh_stdout.readlines())
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
-    if (ssh_stderr.readlines() != {}):
-        print(ssh_stderr.readlines())
+    print(ssh_stdout.readlines())
 
     print ("load bancer vim "+ nameOfLoadBalancer + "started succesfully.")
     return
@@ -172,27 +280,21 @@ def getSshInstanceFromParamiko(ipaddress, username, password):
     return ssh
 
 
-def createNCLoadBalancers(ssh):
-    # create lbs in hypervisor
-    # wait for 10 s
-    # get Ips from respective VMs
-    global ipOfHypervisor, userNameOfHypervisor, passwordOfHypervisor, listOfLB
-    #ssh = paramiko.SSHClient()
-    #ssh.load_system_host_keys()
-    #ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    #ssh.connect(ipOfHypervisor, port=22, username=userNameOfHypervisor, password=passwordOfHypervisor)
+def createNCLoadBalancers(ipaddr, username, password, listOfLBs):
+     # get instance of ssh from paramiko
+     ssh = getSshInstanceFromParamiko(ipaddr, username, password)
 
-
-    for nameOfLoadBalancer in listOfLB:
+     for nameOfLoadBalancer in listOfLBs:
         createLBInNCHypervisor(nameOfLoadBalancer, ssh)
 
-    print ("Waiting for a minute so that LOAD BALANCERS receive  ips Assigned from dhc client") 
-    time.sleep(50)
+     ssh.close()
+    #print ("Waiting for a minute so that LOAD BALANCERS receive  ips Assigned from dhc client") 
+    #time.sleep(50)
 
-    print ("Fetching IP addressees of Load Balancers.")
+    #print ("Fetching IP addressees of Load Balancers.")
     # fetching list of ips from NC hypervisor
-    getIpsFromNCHypervisor() 
-    writeLBsAndTheirIPsToFile()
+    #getIpsFromNCHypervisor() 
+    #writeLBsAndTheirIPsToFile()
     return
 
 
@@ -245,13 +347,13 @@ def setServerDetailsFromUser():
 
 def getInputsFromUser():
     # need to remove following 2 lines 
-   # inputDetails = '192.168.122.103 ece792 welcome1'
-    #hypervisor1Details = inputDetails.strip().split(" ")
-    hypervisor1Details = getHypervisorDetailsFromUser()
+    inputDetails = '192.168.149.3 ece792 welcome1'
+    hypervisor1Details = inputDetails.strip().split(" ")
+    #hypervisor1Details = getHypervisorDetailsFromUser()
     
-    #inputDetails1 = '192.168.122.58 ece792 EcE792net!'
-    #hypervisor2Details = inputDetails1.strip().split(" ")
-    hypervisor2Details = getHypervisorDetailsFromUser()
+    inputDetails1 = '192.168.149.6 ece792 EcE792net!'
+    hypervisor2Details = inputDetails1.strip().split(" ")
+    #hypervisor2Details = getHypervisorDetailsFromUser()
    
     setGlobalHypervisorDetails(hypervisor1Details, hypervisor2Details)
     setServerDetailsFromUser()
