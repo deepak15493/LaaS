@@ -44,11 +44,14 @@ def initialize():
     ### create 4 NC load balancers
     handleCreationOfNCLoadBalancers( )
     
+    ### get default ips of all load balancers
+    collectIpsForLBs()
+    
     ### attach load balancers to vxlan network
     attachLBsToVxlanNetwork()
     
-    ### get default ips of all load balancers
-    collectIpsForLBs()
+    ### assign static ips to just created load balancers vxlan interfaces
+    assignStaticIPToLB() 
     
     ### write LBs and their ips to file
     writeLBsAndTheirIPsToFile()
@@ -185,11 +188,14 @@ def getIpsFromNCHypervisor(connectionURI):
 		             if 'hwaddr' in value:	
                                      dictOfNCLBDefaultMac[domain.name()] = value['hwaddr']
 				
-
+	print("printing the dict of load balancer name to ips")
         for k, v in dictOfNCLBIps.iteritems():
                 print k , v
-	conn.close()
+	print("printing the dict of load balancer name to macs")
+        for k, v in dictOfNCLBDefaultMac.iteritems():
+                print k , v
 
+	conn.close()
 
 def setAWSServerList():
     print("YET TO BE IMPLEMENTED")
