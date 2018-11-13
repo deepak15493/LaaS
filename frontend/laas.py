@@ -64,7 +64,7 @@ def initialize():
 
 
 def collectIpsForLBs():
-    global dictOfHypervisorDetails
+    global dictOfHypervisorDetails, dictOfNCLBDefaultMac
     ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
     userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
     passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
@@ -122,6 +122,7 @@ def attachLBsToVxlanNetwork():
 
 
 def detachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, networkName):
+    global dictOfNCLBDefaultMac
     # get Instance of ssh from paramiko
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
  
