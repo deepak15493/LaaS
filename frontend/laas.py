@@ -26,13 +26,13 @@ def initialize():
     lbUserName = 'root'
     lbPassword = 'tushar123'
 
-    listOfHypervisor2LBs = ['LB101', 'LB102'] [
+    listOfHypervisor1LBs = ['LB101', 'LB102'] 
     listOfHypervisor2LBs = [ 'LB201','LB202']
     
     getInputsFromUser()
     ### setting up network
     createCustomerNetwork()
-    #createManagementNetwork()
+    createManagementNetwork()
  
     ### creating tunnels for both Mangement and data flow   
     createTunnelsForManagementAndDataFlow()
@@ -150,6 +150,7 @@ def createTunnelsForManagementAndDataFlow():
     ## creating tunnel for management of lbs
     createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
     createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
+
 
 def getIpsFromNCHypervisor(connectionURI):
 	global dictOfNCLBIps 
@@ -401,8 +402,8 @@ def writeServerIpsfile():
     print('writing')
     with open('customer_vms.txt', mode='w') as csv_write_file:
         pass
-        csv_writer = csv.writer(csv_write_file, delimiter='\n')
-        csv_writer.writerow(mapOfHypervisorToServer)              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
+        csv_writer = csv.writer(csv_write_file)
+        csv_writer.writerow(mapOfHypervisorToServer.iteritems())              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
