@@ -47,11 +47,15 @@ def initialize():
     attachLBsToVxlanNetwork()
     
     ### get default ips of all load balancers
-    # getIpsFromNCHypervisor()
     collectIpsForLBs()
+    
+    ### write LBs and their ips to file
     writeLBsAndTheirIPsToFile()
-    ####
+    
+    ####  writing server ips to file 
     writeServerIpsfile();   
+   
+    ### push server name file to all lbs 	
     transferFileToLB()
 
 
@@ -89,12 +93,12 @@ def attachLBsToVxlanNetwork():
     attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan1')
     
     ### attach management network of vxlan
-    #attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan2')
-    #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan2')
-
-    ## attach default network 
     attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan2')
     attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan2')
+
+    ## attach default network 
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'default')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'default')
 	
     return
 
@@ -144,8 +148,8 @@ def createTunnelsForManagementAndDataFlow():
     createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', 41)
 
     ## creating tunnel for management of lbs
-    #createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
-    #createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
 
 def getIpsFromNCHypervisor(connectionURI):
 	global dictOfNCLBIps 
@@ -229,14 +233,33 @@ def createCustomerNetwork():
     ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
     userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
     passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
-
+ 
+    bridgeNameForNetwork1 = 'vxlanbr1'
+    fileNameForNetwork1 = 'vxlan1.xml'
+ 
     #create network in hypervisor1
-    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork1, fileNameForNetwork1)
     #create network in hypervisor2
-    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
+    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork1, fileNameForNetwork1)
 
 def createManagementNetwork():
-	print('Yet to be implemented')
+    global dictOfHypervisorDetails
+    print("printing hyp details : ", dictOfHypervisorDetails)
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+
+    bridgeNameForNetwork2 = 'vxlanbr2'
+    fileNameForNetwork2 = 'vxlan2.xml'
+
+     #create network in hypervisor1
+    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2)
+    #create network in hypervisor2
+    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork2, fileNameForNetwork2)
 
 
 
