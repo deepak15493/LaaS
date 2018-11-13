@@ -117,7 +117,7 @@ def detachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, network
     	command_to_attach_iface = 'virsh detach-interface --domain '+ LBName + ' --type network --source '+ networkName + " --mac " + dictOfNCLBDefaultMac[LBName] 
     	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
     	print(ssh_stdout.read(), ssh_stderr.read())
-
+    time.sleep(1)
     ssh.close()
     return
 
@@ -129,7 +129,7 @@ def attachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, network
     	command_to_attach_iface = 'virsh attach-interface --domain '+ LBName + ' --type network --source '+ networkName +' --model virtio --config --live'
     	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
     	print(ssh_stdout.read(), ssh_stderr.read())
- 
+    time.sleep(1) 
     ssh.close()
     return
 
