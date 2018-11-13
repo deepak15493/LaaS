@@ -456,7 +456,9 @@ def assignStaticIPToLB():
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, usernameOfHypervisor1, passwordOfHypervisor1)
 	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
 	input_static_ip_script = ipOfHypervisor1 + " " + usernameOfHypervisor1 + " " + passwordOfHypervisor1 + " LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
-	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script input_static_ip_script)
+
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
 	ssh.close()
 
@@ -465,7 +467,8 @@ def assignStaticIPToLB():
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, usernameOfHypervisor2, passwordOfHypervisor2)
 	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
 	input_static_ip_script = ipOfHypervisor2 + " " + usernameOfHypervisor2 + " " + passwordOfHypervisor2 + " LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
-	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script input_static_ip_script)
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
 	ssh.close()
 
