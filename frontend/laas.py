@@ -163,12 +163,12 @@ def createTunnelsForManagementAndDataFlow():
     passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
     
     ## creating tunnel for data flow
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr1', 'vxlan101', 41)
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', 41)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr1', 'vxlan101', '41', ipOfHypervisor2 )
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', '41', ipOfHypervisor1)
 
     ## creating tunnel for management of lbs
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', '42',ipOfHypervisor2)
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', '42', ipOfHypervisor1)
 
 
 def getIpsFromNCHypervisor(connectionURI):
@@ -286,7 +286,7 @@ def createManagementNetwork():
 
 
 
-def createTunnelInHypervisor(ipaddr, username, password, vxlanBridge,vxlanName,tunnelID):
+def createTunnelInHypervisor(ipaddr, username, password, vxlanBridge,vxlanName,tunnelID, remoteIPAddr):
         # get ssh instace from paramiko
         ssh = getSshInstanceFromParamiko(ipaddr, username, password)
 
