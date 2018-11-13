@@ -227,7 +227,7 @@ def createServersInrespectiveHypervisor():
     ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
     if('hypervisor1' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
-       		nameOfServer = 'server10'+ str(count)
+       		nameOfServer = 'SERVER10'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
     ssh.close()
 
@@ -235,14 +235,14 @@ def createServersInrespectiveHypervisor():
     ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
     if('hypervisor2' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
-       		nameOfServer = 'server11'+ str(count)
+       		nameOfServer = 'SERVER11'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
     ssh.close()
     return    
 
 def createServerInHypervisor(nameOfServer, ssh): 
-    command_to_clone_lbs = 'virt-clone --original BASELB1 --name ' + nameOfServer + ' --auto-clone'
-    command_to_start_lb = 'virsh start ' + nameOfLoadBalancer
+    command_to_clone_server = 'virt-clone --original BASELB1 --name ' + nameOfServer + ' --auto-clone'
+    command_to_start_server = 'virsh start ' + nameOfServer 
     #destroyLBsIfExistsInHypervisor(ssh)
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_server)
     print(ssh_stdout.readlines())
