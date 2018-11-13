@@ -205,7 +205,7 @@ def createAWSLoadBalancers():
     print("YET TO BE IMPLEMENTED")
     return
 
-def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, bridgeName, fileName):
+def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, bridgeName, fileName, networkName):
     print("creating bridge in hypervisor: " + ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     ssh = getSshInstanceFromParamiko(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     #write vxlan.xml in /home/ece792
@@ -226,19 +226,19 @@ def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwo
     print(ssh_stdout.read(), ssh_stderr.read())
 
     # turn bridge iface up
-    command_to_turn_vxlanbr1_iface_up = 'sudo -S ip link set dev vxlanbr1 up'
+    command_to_turn_vxlanbr1_iface_up = 'sudo -S ip link set dev '+ bridgeName+' up'
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_turn_vxlanbr1_iface_up)
     ssh_stdin.write( passwordOfHypervisor +'\n')
     ssh_stdin.flush()
     print(ssh_stdout.read(), ssh_stderr.read())
 
     #create network  
-    command_to_define_network = 'virsh net-define /home/ece792/vxlan1.xml'
+    command_to_define_network = 'virsh net-define /home/ece792/' + fileName
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_define_network)
     print(ssh_stdout.read(), ssh_stderr.read())
 
     #start network 
-    command_to_start_network = 'virsh net-start vxlan1'
+    command_to_start_network = 'virsh net-start '+ networkName
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_network)
     print(ssh_stdout.read())
 
@@ -258,11 +258,12 @@ def createCustomerNetwork():
  
     bridgeNameForNetwork1 = 'vxlanbr1'
     fileNameForNetwork1 = 'vxlan1.xml'
- 
+    networkName1 = 'vxlan1'
+    
     #create network in hypervisor1
-    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork1, fileNameForNetwork1)
+    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
     #create network in hypervisor2
-    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork1, fileNameForNetwork1)
+    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
 
 def createManagementNetwork():
     global dictOfHypervisorDetails
@@ -277,11 +278,11 @@ def createManagementNetwork():
 
     bridgeNameForNetwork2 = 'vxlanbr2'
     fileNameForNetwork2 = 'vxlan2.xml'
-
+    networkName2 = 'vxlan2.xml'
      #create network in hypervisor1
-    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2)
+    createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
     #create network in hypervisor2
-    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork2, fileNameForNetwork2)
+    createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
 
 
 
