@@ -77,17 +77,17 @@ def collectIpsForLBs():
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
     tries1 = 5
     tries2 = 5
-    while( tries > 0): 
+    while( tries1 > 0): 
     	getIpsFromNCHypervisor(uri1)
     	if('LB101' in dictOfNCLBIps and 'LB102' in dictOfNCLBIps and 'LB101' in dictOfNCLBDefaultMac and 'LB102' in dictOfNCLBDefaultMac ):
 		break
-	tries1--
+	tries1 -= 1
     
-    while( tries > 0): 
+    while( tries2 > 0): 
    	getIpsFromNCHypervisor(uri2)
     	if('LB201' in dictOfNCLBIps and 'LB202' in dictOfNCLBIps and 'LB201' in dictOfNCLBDefaultMac and 'LB202' in dictOfNCLBDefaultMac ):
                 break
-        tries2--	
+        tries2 -= 1	
     return
 
 def attachLBsToVxlanNetwork():
@@ -469,9 +469,9 @@ def assignStaticIPToLB():
 	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
-    	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, usernameOfHypervisor1, passwordOfHypervisor1)
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
 	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
-	input_static_ip_script = ipOfHypervisor1 + " " + usernameOfHypervisor1 + " " + passwordOfHypervisor1 + " LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
+	input_static_ip_script = ipOfHypervisor1 + " " + userNameOfHypervisor1 + " " + passwordOfHypervisor1 + " LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
@@ -480,9 +480,9 @@ def assignStaticIPToLB():
 
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
-    	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, usernameOfHypervisor2, passwordOfHypervisor2)
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
 	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
-	input_static_ip_script = ipOfHypervisor2 + " " + usernameOfHypervisor2 + " " + passwordOfHypervisor2 + " LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
+	input_static_ip_script = ipOfHypervisor2 + " " + userNameOfHypervisor2 + " " + passwordOfHypervisor2 + " LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
