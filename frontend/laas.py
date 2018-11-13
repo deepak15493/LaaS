@@ -607,9 +607,9 @@ def writeServerIpsfile():
     ### converting dict to ips of servers
     listOfServerIP = ['192.168.10.50', '192.168.10.51', '192.168.10.60', '192.168.10.61']
     with open('customer_vms.txt', mode='w') as csv_write_file:
-        pass
-        csv_writer = csv.writer(csv_write_file)
-        csv_writer.writerow(listOfServerIP)              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
+        for ip in listOfServerIP:
+		csv_write_file.write(ip)
+                csv_write_file.write('\n')
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
@@ -712,7 +712,7 @@ def assignStaticIPToLB():
 def transferFileToLB():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
         listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
-	for lbName in listOfAllLB:
+	for lbName in listOfAllLBs:
 		if(lbName in dictOfNCLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
 			ip = dictOfNCLBIps[lbName]
 			currentWorkingDirectory = os.getcwd()
