@@ -48,13 +48,16 @@ def initialize():
     attachLBsToVxlanNetwork()
     
     ### get default ips of all load balancers
-    getIpsFromNCHypervisor()
- 
+   # getIpsFromNCHypervisor()
+     collectIpsForLBs()
     #writeLBsAndTheirIPsToFile()
     ####
     #writeServerIpsfile();   
     #transferFileToLB()
 
+
+def collectIpsForLBs():
+    
 
 def attachLBsToVxlanNetwork():
     global dictOfHypervisorDetails, listOfHyperviser1LBs, listOfHyperviser2LBs
