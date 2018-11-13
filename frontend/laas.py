@@ -468,9 +468,16 @@ def assignStaticIPToLB():
 		
 	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
 
-	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
-	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
+
+	### give file executing permission
+	command_to_change_permission = 'chmod 777 /tmp/'+ staticIPScript
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+	print(ssh_stdout.readlines())
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
@@ -481,7 +488,11 @@ def assignStaticIPToLB():
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
-	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
+
+ 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+        print(ssh_stdout.readlines())
+
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
