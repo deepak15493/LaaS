@@ -64,5 +64,3 @@ if __name__ == "__main__":
 		assignStaticIPOnHypervisor1()
 	else:
 		assignStaticIPOnHypervisor2()
-
-
