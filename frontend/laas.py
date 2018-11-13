@@ -18,6 +18,10 @@ mapOfHypervisorToServer = {}
 dictOfNCLBIps= {}
 dictOfNCLBDefaultMac= {}
 
+
+dictOfNCServerIps = {}
+dictOfNCServerDefaultMac = {}
+
 ipOfHypervisor1 = ''
 userNameOfHypervisor1 = ''
 passwordOfHypervisor1 = ''
@@ -63,8 +67,14 @@ def initialize():
     ### create Servers according to requirement
     createServersInrespectiveHypervisor()
 
+    ### get default ips of all servers
+    collectIpsForServers()
+
     ## attach server to data network
     attachServersToNetwork()
+
+    ### assign static ips to just created servers vxlan interfaces
+    assignStaticIPToServer()
 
     ### write LBs and their ips to file
     writeLBsAndTheirIPsToFile()
@@ -75,6 +85,76 @@ def initialize():
     ### push server name file to all lbs 	
     transferFileToLB()
 
+def assignStaticIPToServer():
+	global dictOfNCServerIps, lbPassword, lbUserName 
+        global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+        global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+	
+	currentWorkingDirectory = os.getcwd()
+	destDirectory = '/tmp'
+	staticIPScript = "assignStaticIpToServer.py"
+	### Copy script on hypervisor 
+	cpFileToVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, currentWorkingDirectory, destDirectory, staticIPScript ) 
+		
+	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
+
+
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+
+	### give file executing permission
+	command_to_change_permission = 'chmod 777 /tmp/'+ staticIPScript
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+	print(ssh_stdout.readlines())
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
+	input_static_ip_script = "SERVER100,SERVER101" + " " + dictOfNCServerIps["SERVER100"] + "," + dictOfNCServerIps["SERVER101"] + " 1" 
+
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
+
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
+
+ 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+        print(ssh_stdout.readlines())
+
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
+	input_static_ip_script = "SERVER110,SERVER111" + " " + dictOfNCServerIps["SERVER110"] + "," + dictOfNCServerIps["SERVER111"] + " 2" 
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
+
+
+
+def collectIpsForServers():
+    global  dictOfNCLBDefaultMac, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+
+
+    uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
+    uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
+    tries1 = 5
+    tries2 = 5
+    while( tries1 > 0):
+        getIpsFromNCServers(uri1)
+        if('SERVER100' in dictOfNCServerIps and 'SERVER101' in dictOfNCServerIps and 'SERVER100' in dictOfNCServerDefaultMac and 'SERVER101' in dictOfNCServerDefaultMac ):
+                break
+        tries1 -= 1
+
+    while( tries2 > 0):
+        getIpsFromNCServers(uri2)
+	if('SERVER110' in dictOfNCServerIps and 'SERVER111' in dictOfNCServerIps and 'SERVER110' in dictOfNCServerDefaultMac and 'SERVER111' in dictOfNCServerDefaultMac ):                
+		break
+        tries2 -= 1
+    return
+
+
+
 
 def attachServersToNetwork():
     global mapOfHypervisorToServer
@@ -83,31 +163,61 @@ def attachServersToNetwork():
 
     if('hypervisor1' in mapOfHypervisorToServer):
 	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
-		nameOfServer = 'server10'+ str(count)
+		nameOfServer = 'SERVER10'+ str(count)
 		listOfServersInHypervisor1.append(nameOfServer)
     	attachHypervisorServers(ipOfHypervisor1,userNameOfHypervisor1, passwordOfHypervisor1, listOfServersInHypervisor1,'vxlan1' )
     	  
 
     if('hypervisor2' in mapOfHypervisorToServer):
 	for count in range(0, mapOfHypervisorToServer):
-		nameOfServer = 'server11' + str(count)
+		nameOfServer = 'SERVER11' + str(count)
 		listOfServersInHypervisor2.append(nameOfServer)
  	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan1')
     
 
-def attachHypervisorServers(ipaddr, username, password, listOfServers, networkName):
-   # get Instance of ssh from paramiko
+    for nameOfServer in listOfServers:
+	detachHypervisorLBs(ipaddr, username, password, listOfServers, 'default')
+
+    # get Instance of ssh from paramiko
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
 
     for nameOfServer in listOfServers:
         command_to_attach_iface = 'virsh attach-interface --domain '+ nameOfServer + ' --type network --source '+ networkName +' --model virtio --config --live'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
         print(ssh_stdout.read(), ssh_stderr.read())
+
     time.sleep(1)
+
+    for nameOfServer in listOfServers:
+        command_to_attach_iface = 'virsh attach-interface --domain '+ nameOfServer + ' --type network --source default --model virtio --config --live'
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+        print(ssh_stdout.read(), ssh_stderr.read())
+
     ssh.close()
     return
 
+def getIpsFromNCServers(connectionURI):
+        global dictOfNCServerIps, dictOfNCServerDefaultMac
+        conn = libvirt.open(connectionURI)
+        domains = conn.listAllDomains()
+        for domain in domains:
+                if(domain.name().startswith( 'SERVER' )):
+                     ifaces = domain.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
+                     if(bool(ifaces)):
+                             key, value = ifaces.popitem()
+                             if 'addrs' in value:
+                                     dictOfNCServerIps[domain.name()] = value['addrs'][0]['addr']
+                             if 'hwaddr' in value:
+                                     dictOfNCServerDefaultMac[domain.name()] = value['hwaddr']
 
+        print("printing the dict of load balancer name to ips")
+        for k, v in dictOfNCServerIps.iteritems():
+                print k , v
+        print("printing the dict of load balancer name to macs")
+        for k, v in dictOfNCServerDefaultMac.iteritems():
+                print k , v
+        time.sleep(15)
+        conn.close()	
 
 def createServersInrespectiveHypervisor():
     global mapOfHypervisorToServer, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
@@ -138,7 +248,7 @@ def createServerInHypervisor(nameOfServer, ssh):
     print(ssh_stdout.readlines())
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_server)
     print(ssh_stdout.readlines())
-    time.sleep(25)
+    time.sleep(10)
     print ( nameOfServer + " started succesfully.")
     return
 
@@ -165,10 +275,13 @@ def collectIpsForLBs():
         tries2 -= 1	
     return
 
+
+
 def attachLBsToVxlanNetwork():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2 
-
+    global listOfHypervisor1LBs, listOfHypervisor2LBs
+ 
     ### Detach default network
     detachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'default')
     detachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'default')
@@ -486,6 +599,55 @@ def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
         print (command)
         os.system(command)
+
+
+
+def assignStaticIPToLB():
+	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
+        global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+        global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+	
+	currentWorkingDirectory = os.getcwd()
+	destDirectory = '/tmp'
+	staticIPScript = "assignStaticIp.py"
+	### Copy script on hypervisor 
+	cpFileToVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, currentWorkingDirectory, destDirectory, staticIPScript ) 
+		
+	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
+
+
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+
+	### give file executing permission
+	command_to_change_permission = 'chmod 777 /tmp/'+ staticIPScript
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+	print(ssh_stdout.readlines())
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
+	input_static_ip_script = "LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
+
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
+
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
+
+ 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
+        print(ssh_stdout.readlines())
+
+	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
+	input_static_ip_script = "LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
+	command_to_run_static_ip_script += input_static_ip_script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
+
+
+
 
 def assignStaticIPToLB():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
