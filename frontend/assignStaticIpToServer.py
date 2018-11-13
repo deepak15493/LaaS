@@ -48,10 +48,10 @@ if __name__ == "__main__":
 	arrIPOfServers = (sys.argv[2]).strip().split(",")
 	hypervisorFlag = sys.argv[3].strip()
 	
-	for LB in arrOfLBs:
-		listOfServers.append(LB)
+	for server in arrOfServers:
+		listOfServers.append(server)
 	
-	for IP in arrIPOfLBs:
+	for IP in arrIPOfServers:
 		listOfIPOfServers.append(IP)
 	
 	if hypervisorFlag == str(1):
