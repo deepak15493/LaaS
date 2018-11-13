@@ -169,7 +169,7 @@ def attachServersToNetwork():
     	  
 
     if('hypervisor2' in mapOfHypervisorToServer):
-	for count in range(0, mapOfHypervisorToServer):
+	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
 		nameOfServer = 'SERVER11' + str(count)
 		listOfServersInHypervisor2.append(nameOfServer)
  	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan1')
@@ -604,10 +604,12 @@ def writeLBsAndTheirIPsToFile() :
 	
 def writeServerIpsfile():
     print('writing')
+    ### converting dict to ips of servers
+    listOfServerIP = ['192.168.10.50', '192.168.10.51', '192.168.10.60', '192.168.10.61']
     with open('customer_vms.txt', mode='w') as csv_write_file:
         pass
         csv_writer = csv.writer(csv_write_file)
-        csv_writer.writerow(mapOfHypervisorToServer.iteritems())              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
+        csv_writer.writerow(listOfServerIP)              # need to change this function to accept dictionary instead of list ... prev it was listOfServers
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
