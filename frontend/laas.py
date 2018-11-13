@@ -324,14 +324,14 @@ def destroyLBsIfExistsInHypervisor(ssh):
     return
 
 def createLBInNCHypervisor(nameOfLoadBalancer, ssh):
-    command_to_clone_lbs = 'virt-clone --original LB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
+    command_to_clone_lbs = 'virt-clone --original BASELB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
     command_to_start_lb = 'virsh start ' + nameOfLoadBalancer
     #destroyLBsIfExistsInHypervisor(ssh)
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_lbs)
     print(ssh_stdout.readlines())
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
     print(ssh_stdout.readlines())
-
+    time.sleep(25)
     print ("load bancer vim "+ nameOfLoadBalancer + "started succesfully.")
     return
 
