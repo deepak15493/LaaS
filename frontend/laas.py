@@ -127,7 +127,7 @@ def detachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, network
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
  
     for LBName in listOfHyperviserLBs:
-    	command_to_attach_iface = 'virsh detach-interface --domain '+ LBName + ' --type network --source '+ networkName + " --mac " + dictOfNCLBDefaultMac[LBName] 
+    	command_to_attach_iface = 'virsh detach-interface --domain '+ LBName + ' --type network --mac ' + dictOfNCLBDefaultMac[LBName]	
     	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
     	print(ssh_stdout.read(), ssh_stderr.read())
     time.sleep(1)
