@@ -175,6 +175,8 @@ def attachServersToNetwork():
  	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan1')
     
 
+
+def attachHypervisorServers(ipaddr, username, password, listOfServers, networkName):
     for nameOfServer in listOfServers:
 	detachHypervisorLBs(ipaddr, username, password, listOfServers, 'default')
 
