@@ -712,6 +712,13 @@ def assignStaticIPToLB():
 def transferFileToLB():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
         listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
+
+        staticDictForLBIps = {}
+
+        staticDictForLBIps['LB101'] = '192.168.20.1'
+        staticDictForLBIps['LB102'] = '192.168.20.2'
+        staticDictForLBIps['LB201'] = '192.168.20.10'
+        staticDictForLBIps['LB202'] = '192.168.20.11'
 	for lbName in listOfAllLBs:
 		if(lbName in dictOfNCLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
 			ip = dictOfNCLBIps[lbName]
