@@ -225,7 +225,7 @@ def createServersInrespectiveHypervisor():
 
     # get instance of ssh from paramiko
     ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
-    if('hypervisor1' in mapOfHypervisortoServer):
+    if('hypervisor1' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
        		nameOfServer = 'server10'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
@@ -233,7 +233,7 @@ def createServersInrespectiveHypervisor():
 
     # get instance of ssh from paramiko
     ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
-    if('hypervisor2' in mapOfHypervisortoServer):
+    if('hypervisor2' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
        		nameOfServer = 'server11'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
@@ -566,7 +566,7 @@ def setServerDetailsFromUser():
 		break
 	inputServerDetailsArray = inputServerDetails.split(' ')
         hypervisorName = inputServerDetailsArray[0]
-	mapOfHypervisorToServer[hypervisorName] = inputServerDetailsArray[1] 
+	mapOfHypervisorToServer[hypervisorName] = int(inputServerDetailsArray[1]) 
 
 
 def getInputsFromUser():
