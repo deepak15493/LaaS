@@ -75,10 +75,19 @@ def collectIpsForLBs():
 
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
-   
-    getIpsFromNCHypervisor(uri1)
-    getIpsFromNCHypervisor(uri2)
-    	
+    tries1 = 5
+    tries2 = 5
+    while( tries > 0): 
+    	getIpsFromNCHypervisor(uri1)
+    	if('LB101' in dictOfNCLBIps and 'LB102' in dictOfNCLBIps and 'LB101' in dictOfNCLBDefaultMac and 'LB102' in dictOfNCLBDefaultMac ):
+		break
+	tries1--
+    
+    while( tries > 0): 
+   	getIpsFromNCHypervisor(uri2)
+    	if('LB201' in dictOfNCLBIps and 'LB202' in dictOfNCLBIps and 'LB201' in dictOfNCLBDefaultMac and 'LB202' in dictOfNCLBDefaultMac ):
+                break
+        tries2--	
     return
 
 def attachLBsToVxlanNetwork():
@@ -175,7 +184,7 @@ def createTunnelsForManagementAndDataFlow():
 
 
 def getIpsFromNCHypervisor(connectionURI):
-	global dictOfNCLBIps 
+	global dictOfNCLBIps, dictOfNCLBDefaultMac 
 	conn = libvirt.open(connectionURI)
 	domains = conn.listAllDomains()
         for domain in domains:
@@ -194,7 +203,7 @@ def getIpsFromNCHypervisor(connectionURI):
 	print("printing the dict of load balancer name to macs")
         for k, v in dictOfNCLBDefaultMac.iteritems():
                 print k , v
-
+	time.sleep(15)
 	conn.close()
 
 def setAWSServerList():
