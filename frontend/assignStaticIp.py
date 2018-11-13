@@ -25,7 +25,7 @@ def assignStaticIPOnHypervisor1():
     		print(ssh_stdout.readlines())
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth1)
     		print(ssh_stdout.readlines())
-
+	ssh.close()
 
 def assignStaticIPOnHypervisor2():
 	global listOfLBs, username, password , hypervisorIP
@@ -39,7 +39,7 @@ def assignStaticIPOnHypervisor2():
     		print(ssh_stdout.readlines())
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth1)
     		print(ssh_stdout.readlines())
-	
+	ssh.close()
 
 
 def getSshInstanceFromParamiko(ipaddress, username, password):

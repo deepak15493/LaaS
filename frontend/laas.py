@@ -17,6 +17,7 @@ listOfHypervisor2LBs = []
 mapOfHypervisorToServer = defaultdict(list)
 
 dictOfNCLBIps= {}
+dictOfNCLBDefaultMac= {}
 
 
 def initialize():
@@ -87,7 +88,12 @@ def attachLBsToVxlanNetwork():
     ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
     userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
     passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
-   
+  
+
+    ### Detach default network
+    detachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'default')
+    detachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'default')
+ 
     ### attach data network of vxlan 
     attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan1')
     attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan1')
@@ -103,6 +109,18 @@ def attachLBsToVxlanNetwork():
     return
 
 
+def detachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, networkName):
+    # get Instance of ssh from paramiko
+    ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
+ 
+    for LBName in listOfHyperviserLBs:
+    	command_to_attach_iface = 'virsh detach-interface --domain '+ LBName + ' --type network --source '+ networkName + " --mac " + dictOfNCLBDefaultMac[LBName] 
+    	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+    	print(ssh_stdout.read(), ssh_stderr.read())
+
+    ssh.close()
+    return
+
 def attachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, networkName):
     # get Instance of ssh from paramiko
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
@@ -111,7 +129,8 @@ def attachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, network
     	command_to_attach_iface = 'virsh attach-interface --domain '+ LBName + ' --type network --source '+ networkName +' --model virtio --config --live'
     	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
     	print(ssh_stdout.read(), ssh_stderr.read())
-
+ 
+    ssh.close()
     return
 
 def handleCreationOfNCLoadBalancers():
@@ -162,7 +181,9 @@ def getIpsFromNCHypervisor(connectionURI):
                              key, value = ifaces.popitem()
                              if 'addrs' in value:
                                      dictOfNCLBIps[domain.name()] = value['addrs'][0]['addr']
-
+		             if 'hwaddr' in value:	
+                                     dictOfNCLBDefaultMac[domain.name()] = value['hwaddr']
+				
 
         for k, v in dictOfNCLBIps.iteritems():
                 print k , v
@@ -409,6 +430,42 @@ def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
         print (command)
         os.system(command)
 
+def assignStaticIPToLB():
+	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
+	global dictOfHypervisorDetails
+	print("printing hyp details : ", dictOfHypervisorDetails)
+	ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+	userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+	passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
+
+	ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+	userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+	passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+	
+	currentWorkingDirectory = os.getcwd()
+	destDirectory = '/tmp'
+	staticIPScript = "assignStaticIp.py"
+	### Copy script on hypervisor 
+	cpFileToVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, currentWorkingDirectory, destDirectory, staticIPScript ) 
+		
+	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, usernameOfHypervisor1, passwordOfHypervisor1)
+	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
+	input_static_ip_script = ipOfHypervisor1 + " " + usernameOfHypervisor1 + " " + passwordOfHypervisor1 + " LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script input_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
+
+
+	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
+    	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, usernameOfHypervisor2, passwordOfHypervisor2)
+	command_to_run_static_ip_script = 'python ' + staticIPScript + ' ' 
+	input_static_ip_script = ipOfHypervisor2 + " " + usernameOfHypervisor2 + " " + passwordOfHypervisor2 + " LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script input_static_ip_script)
+	print(ssh_stdout.readlines())
+	ssh.close()
 
 def transferFileToLB():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
