@@ -278,7 +278,7 @@ def createManagementNetwork():
 
     bridgeNameForNetwork2 = 'vxlanbr2'
     fileNameForNetwork2 = 'vxlan2.xml'
-    networkName2 = 'vxlan2.xml'
+    networkName2 = 'vxlan2'
      #create network in hypervisor1
     createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
     #create network in hypervisor2
