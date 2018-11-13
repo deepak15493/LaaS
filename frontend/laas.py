@@ -5,10 +5,9 @@ import libvirt
 import time
 from collections import defaultdict
  
-listOfAWSServers = []
-listOfNCServers = []
+#listOfAWSServers = []
 listOfNCServersIP = []
-listOfLB = []
+#listOfLB = []
 #load balancer common credentials
 dictOfHypervisorDetails = {}
 lbUserName = ''
@@ -17,18 +16,18 @@ listOfHypervisor1LBs = []
 listOfHypervisor2LBs = []
 mapOfHypervisorToServer = defaultdict(list)
 
-dictOfNCServersIps = {}
+dictOfNCLBIps= {}
 
 
 def initialize():
     print ("Initializing")
     #initialize lb credentials
-    global listOfHyperviser1LBs, listOfHyperviser2LBs, lbUserName, lbPassword, mapOfHypervisorToServer
+    global listOfHypervisor1LBs, listOfHypervisor2LBs, lbUserName, lbPassword, mapOfHypervisorToServer
     lbUserName = 'root'
     lbPassword = 'tushar123'
 
-    listOfHyperviser2LBs = ['LB101', 'LB102'] [
-    listOfHyperviser2LBs = [ 'LB201','LB202']
+    listOfHypervisor2LBs = ['LB101', 'LB102'] [
+    listOfHypervisor2LBs = [ 'LB201','LB202']
     
     getInputsFromUser()
     ### setting up network
@@ -48,19 +47,34 @@ def initialize():
     attachLBsToVxlanNetwork()
     
     ### get default ips of all load balancers
-   # getIpsFromNCHypervisor()
-     collectIpsForLBs()
-    #writeLBsAndTheirIPsToFile()
+    # getIpsFromNCHypervisor()
+    collectIpsForLBs()
+    writeLBsAndTheirIPsToFile()
     ####
-    #writeServerIpsfile();   
-    #transferFileToLB()
+    writeServerIpsfile();   
+    transferFileToLB()
 
 
 def collectIpsForLBs():
-    
+    global dictOfHypervisorDetails
+    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
+    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
+    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
+
+    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
+    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
+    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2'] 
+
+    uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
+    uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
+   
+    getIpsFromNCHypervisor(uri1)
+    getIpsFromNCHypervisor(uri2)
+    	
+    return
 
 def attachLBsToVxlanNetwork():
-    global dictOfHypervisorDetails, listOfHyperviser1LBs, listOfHyperviser2LBs
+    global dictOfHypervisorDetails, listOfHypervisor1LBs, listOfHypervisor2LBs
     # get configuration details from global dict
     ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
     userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
@@ -71,16 +85,16 @@ def attachLBsToVxlanNetwork():
     passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
    
     ### attach data network of vxlan 
-    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan1')
-    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan1')
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan1')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan1')
     
     ### attach management network of vxlan
-    #attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan2')
-    #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan2')
+    #attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan2')
+    #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan2')
 
     ## attach default network 
-    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHyperviser1LBs, 'vxlan2')
-    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHyperviser2LBs, 'vxlan2')
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan2')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan2')
 	
     return
 
@@ -133,9 +147,9 @@ def createTunnelsForManagementAndDataFlow():
     #createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', 42)
     #createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', 42)
 
-def getIpsFromNCHypervisor():
-	global dictOfNCServersIps 
-	conn = libvirt.open('qemu:///system')
+def getIpsFromNCHypervisor(connectionURI):
+	global dictOfNCLBIps 
+	conn = libvirt.open(connectionURI)
 	domains = conn.listAllDomains()
         for domain in domains:
                 if(domain.name().startswith( 'LB' )):
@@ -143,10 +157,10 @@ def getIpsFromNCHypervisor():
                      if(bool(ifaces)):
                              key, value = ifaces.popitem()
                              if 'addrs' in value:
-                                     dictOfNCServersIps[domain.name()] = value['addrs'][0]['addr']
+                                     dictOfNCLBIps[domain.name()] = value['addrs'][0]['addr']
 
 
-        for k, v in dictOfNCServersIps.iteritems():
+        for k, v in dictOfNCLBIps.iteritems():
                 print k , v
 	conn.close()
 
@@ -165,7 +179,7 @@ def createAWSLoadBalancers():
     print("YET TO BE IMPLEMENTED")
     return
 
-def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor):
+def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, bridgeName, fileName):
     print("creating bridge in hypervisor: " + ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     ssh = getSshInstanceFromParamiko(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     #write vxlan.xml in /home/ece792
@@ -173,13 +187,13 @@ def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwo
     # details for copying file 
     currentWorkingDirectory = os.getcwd()
     destDirectory = '/home/ece792' 
-    fileName = 'vxlan1.xml'
+    fileName = fileName
     cpFileToVM(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, currentWorkingDirectory, destDirectory, fileName )
     # wait for scp to finish
     time.sleep(5)
 
     # add bridge to hypervisor 
-    command_to_create_bridge = 'sudo -S brctl addbr vxlanbr1'
+    command_to_create_bridge = 'sudo -S brctl addbr ' + bridgeName           #vxlanbr1
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_create_bridge)
     ssh_stdin.write( passwordOfHypervisor +'\n')
     ssh_stdin.flush()
@@ -291,14 +305,7 @@ def createNCLoadBalancers(ipaddr, username, password, listOfLBs):
         createLBInNCHypervisor(nameOfLoadBalancer, ssh)
 
      ssh.close()
-    #print ("Waiting for a minute so that LOAD BALANCERS receive  ips Assigned from dhc client") 
-    #time.sleep(50)
-
-    #print ("Fetching IP addressees of Load Balancers.")
-    # fetching list of ips from NC hypervisor
-    #getIpsFromNCHypervisor() 
-    #writeLBsAndTheirIPsToFile()
-    return
+     return
 
 
 def validateIpProvided(inputDetailsOfHypervisor):
@@ -365,7 +372,7 @@ def writeLBsAndTheirIPsToFile() :
     # writing server ip in file 
     with open('load_balancers.txt', 'wb') as f:
 	    writer = csv.writer(f)
-	    writer.writerows(dictOfNCServersIps.iteritems() )
+	    writer.writerows(dictOfNCLBIps.iteritems() )
 	
 def writeServerIpsfile():
     print('writing')
@@ -381,13 +388,15 @@ def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 
 
 def transferFileToLB():
-	global dictOfNCServersIps, lbPassword, lbUserName
-	for lbName in listOfLB:
-		if(lbName in dictOfNCServersIps):			# dictOfNCServersIps is dictionary of type loadbalncerName: ipOfLoadBalancer
-			ip = dictOfNCServersIps[lbName] 
-			command = 'sshpass -p '+ lbPassword +' scp -o StrictHostKeyChecking=no /home/ece792/LaaS/customer_vms.txt '+ lbUserName  +'@'+ ip +':/tmp'
-			#print (command)
-			os.system(command)
+	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
+        listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
+	for lbName in listOfAllLB:
+		if(lbName in dictOfNCLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
+			ip = dictOfNCLBIps[lbName]
+			currentWorkingDirectory = os.getcwd()
+    			destDirectory = '/tmp'
+    			fileName = 'customer_vms.txt'
+			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectory, destDirectory, fileName ) 
 
 if __name__ == "__main__":
 	initialize()
