@@ -9,16 +9,23 @@ from collections import defaultdict
 listOfNCServersIP = []
 #listOfLB = []
 #load balancer common credentials
-dictOfHypervisorDetails = {}
 lbUserName = ''
 lbPassword = ''
 listOfHypervisor1LBs = []
 listOfHypervisor2LBs = []
-mapOfHypervisorToServer = defaultdict(list)
+mapOfHypervisorToServer = {} 
 
 dictOfNCLBIps= {}
 dictOfNCLBDefaultMac= {}
 
+ipOfHypervisor1 = ''
+userNameOfHypervisor1 = ''
+passwordOfHypervisor1 = ''
+
+
+ipOfHypervisor2 = ''
+userNameOfHypervisor2 = ''
+passwordOfHypervisor2 = ''
 
 def initialize():
     print ("Initializing")
@@ -52,7 +59,13 @@ def initialize():
     
     ### assign static ips to just created load balancers vxlan interfaces
     assignStaticIPToLB() 
-    
+
+    ### create Servers according to requirement
+    createServersInrespectiveHypervisor()
+
+    ## attach server to data network
+    attachServersToNetwork()
+
     ### write LBs and their ips to file
     writeLBsAndTheirIPsToFile()
     
@@ -63,15 +76,77 @@ def initialize():
     transferFileToLB()
 
 
-def collectIpsForLBs():
-    global dictOfHypervisorDetails, dictOfNCLBDefaultMac
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
+def attachServersToNetwork():
+    global mapOfHypervisorToServer
+    listOfServersInHypervisor1 = []
+    listOfServersInHypervisor2 = [] 
 
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2'] 
+    if('hypervisor1' in mapOfHypervisorToServer):
+	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
+		nameOfServer = 'server10'+ str(count)
+		listOfServersInHypervisor1.append(nameOfServer)
+    	attachHypervisorServers(ipOfHypervisor1,userNameOfHypervisor1, passwordOfHypervisor1, listOfServersInHypervisor1,'vxlan1' )
+    	  
+
+    if('hypervisor2' in mapOfHypervisorToServer):
+	for count in range(0, mapOfHypervisorToServer):
+		nameOfServer = 'server11' + str(count)
+		listOfServersInHypervisor2.append(nameOfServer)
+ 	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan1')
+    
+
+def attachHypervisorServers(ipaddr, username, password, listOfServers, networkName):
+   # get Instance of ssh from paramiko
+    ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
+
+    for nameOfServer in listOfServers:
+        command_to_attach_iface = 'virsh attach-interface --domain '+ nameOfServer + ' --type network --source '+ networkName +' --model virtio --config --live'
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+        print(ssh_stdout.read(), ssh_stderr.read())
+    time.sleep(1)
+    ssh.close()
+    return
+
+
+
+def createServersInrespectiveHypervisor():
+    global mapOfHypervisorToServer, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+
+    # get instance of ssh from paramiko
+    ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+    if('hypervisor1' in mapOfHypervisortoServer):
+    	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
+       		nameOfServer = 'server10'+ str(count)
+		createServerInHypervisor(nameOfServer, ssh)
+    ssh.close()
+
+    # get instance of ssh from paramiko
+    ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
+    if('hypervisor2' in mapOfHypervisortoServer):
+    	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
+       		nameOfServer = 'server11'+ str(count)
+		createServerInHypervisor(nameOfServer, ssh)
+    ssh.close()
+    return    
+
+def createServerInHypervisor(nameOfServer, ssh): 
+    command_to_clone_lbs = 'virt-clone --original BASELB1 --name ' + nameOfServer + ' --auto-clone'
+    command_to_start_lb = 'virsh start ' + nameOfLoadBalancer
+    #destroyLBsIfExistsInHypervisor(ssh)
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_server)
+    print(ssh_stdout.readlines())
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_server)
+    print(ssh_stdout.readlines())
+    time.sleep(25)
+    print ( nameOfServer + " started succesfully.")
+    return
+
+
+def collectIpsForLBs():
+    global  dictOfNCLBDefaultMac, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2    
+
 
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
@@ -91,16 +166,8 @@ def collectIpsForLBs():
     return
 
 def attachLBsToVxlanNetwork():
-    global dictOfHypervisorDetails, listOfHypervisor1LBs, listOfHypervisor2LBs
-    # get configuration details from global dict
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
-
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
-  
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2 
 
     ### Detach default network
     detachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'default')
@@ -147,16 +214,9 @@ def attachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, network
     return
 
 def handleCreationOfNCLoadBalancers():
-    global dictOfHypervisorDetails
-    # get configuration details from global dict
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
-
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
-    
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+ 
     listOfLBInHypervisor1 = ['LB101', 'LB102']
     listOfLBInHypervisor2 = ['LB201', 'LB202']
     ## create lbs in hypervisor 1
@@ -165,16 +225,9 @@ def handleCreationOfNCLoadBalancers():
     createNCLoadBalancers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfLBInHypervisor2)
 
 def createTunnelsForManagementAndDataFlow():
-    global dictOfHypervisorDetails
-    # get configuration details from global dict
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 = dictOfHypervisorDetails['passwordOfHypervisor1']
-
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 = dictOfHypervisorDetails['passwordOfHypervisor2']
-    
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+ 
     ## creating tunnel for data flow
     createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr1', 'vxlan101', '41', ipOfHypervisor2 )
     createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', '41', ipOfHypervisor1)
@@ -262,15 +315,8 @@ def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwo
     ssh.close()
 
 def createCustomerNetwork():
-    global dictOfHypervisorDetails
-    print("printing hyp details : ", dictOfHypervisorDetails)
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
-
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
  
     bridgeNameForNetwork1 = 'vxlanbr1'
     fileNameForNetwork1 = 'vxlan1.xml'
@@ -282,15 +328,8 @@ def createCustomerNetwork():
     createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
 
 def createManagementNetwork():
-    global dictOfHypervisorDetails
-    print("printing hyp details : ", dictOfHypervisorDetails)
-    ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-    userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-    passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
-
-    ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-    userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-    passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
 
     bridgeNameForNetwork2 = 'vxlanbr2'
     fileNameForNetwork2 = 'vxlan2.xml'
@@ -394,27 +433,27 @@ def getHypervisorDetailsFromUser():
     return inputDetailsArray
 	
 def setGlobalHypervisorDetails(hypervisor1Details, hypervisor2Details):
-    global dictOfHypervisorDetails
-    dictOfHypervisorDetails['ipOfHypervisor1'] = hypervisor1Details[0].strip()
-    dictOfHypervisorDetails['userNameOfHypervisor1'] = hypervisor1Details[1].strip()
-    dictOfHypervisorDetails['passwordOfHypervisor1'] = hypervisor1Details[2].strip()
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1 
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+ 
+    ipOfHypervisor1 = hypervisor1Details[0].strip()
+    userNameOfHypervisor1 = hypervisor1Details[1].strip()
+    passwordOfHypervisor1 = hypervisor1Details[2].strip()
     
-    dictOfHypervisorDetails['ipOfHypervisor2'] = hypervisor2Details[0].strip()
-    dictOfHypervisorDetails['userNameOfHypervisor2'] = hypervisor2Details[1].strip()
-    dictOfHypervisorDetails['passwordOfHypervisor2'] = hypervisor2Details[2].strip()
+    ipOfHypervisor2 = hypervisor2Details[0].strip()
+    userNameOfHypervisor2 = hypervisor2Details[1].strip()
+    passwordOfHypervisor2 = hypervisor2Details[2].strip()
 
 def setServerDetailsFromUser():
     global mapOfHypervisorToServer	
     while(True):
-	serverDetails = raw_input("Enter  Enter the hypervisor name (hypervisor1/hypervisor2) and ip address of web server space separated ( or Enter 1 when finished entering server details) ")
+	serverDetails = raw_input("Enter the hypervisor name (hypervisor1/hypervisor2) and number of servers on this hypervisor (2 or 4)  (or Enter 1 when finished entering server details) ")
 	inputServerDetails = serverDetails.strip()
 	if(inputServerDetails == str(1)):
 		break
 	inputServerDetailsArray = inputServerDetails.split(' ')
         hypervisorName = inputServerDetailsArray[0]
-        ipOfServer = inputServerDetailsArray[1] 
-        print("hypervisor : " , hypervisorName, "ip: ", ipOfServer) 
-	mapOfHypervisorToServer[hypervisorName].append(ipOfServer)
+	mapOfHypervisorToServer[hypervisorName] = inputServerDetailsArray[1] 
 
 
 def getInputsFromUser():
@@ -450,15 +489,8 @@ def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 
 def assignStaticIPToLB():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
-	global dictOfHypervisorDetails
-	print("printing hyp details : ", dictOfHypervisorDetails)
-	ipOfHypervisor1 = dictOfHypervisorDetails['ipOfHypervisor1']
-	userNameOfHypervisor1 = dictOfHypervisorDetails['userNameOfHypervisor1']
-	passwordOfHypervisor1 =  dictOfHypervisorDetails['passwordOfHypervisor1']
-
-	ipOfHypervisor2 = dictOfHypervisorDetails['ipOfHypervisor2']
-	userNameOfHypervisor2 = dictOfHypervisorDetails['userNameOfHypervisor2']
-	passwordOfHypervisor2 =  dictOfHypervisorDetails['passwordOfHypervisor2']
+        global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+        global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
 	
 	currentWorkingDirectory = os.getcwd()
 	destDirectory = '/tmp'
