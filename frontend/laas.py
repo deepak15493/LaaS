@@ -178,7 +178,7 @@ def attachServersToNetwork():
 
 def attachHypervisorServers(ipaddr, username, password, listOfServers, networkName):
     for nameOfServer in listOfServers:
-	detachHypervisorLBs(ipaddr, username, password, listOfServers, 'default')
+	detachHypervisorServer(ipaddr, username, password, listOfServers, 'default')
 
     # get Instance of ssh from paramiko
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
@@ -302,6 +302,18 @@ def attachLBsToVxlanNetwork():
 	
     return
 
+def detachHypervisorServer(ipaddr, username, password, listOfHyperviserServers, networkName):
+    global dictOfNCServerDefaultMac
+    # get Instance of ssh from paramiko
+    ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
+ 
+    for nameOfServer in listOfHyperviserServers:
+    	command_to_attach_iface = 'virsh detach-interface --domain '+ nameOfServer + ' --type network --mac ' + dictOfNCServerDefaultMac[nameOfServer]	
+    	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+    	print(ssh_stdout.read())
+    time.sleep(1)
+    ssh.close()
+    return
 
 def detachHypervisorLBs(ipaddr, username, password, listOfHyperviserLBs, networkName):
     global dictOfNCLBDefaultMac
