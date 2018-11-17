@@ -585,11 +585,11 @@ def setServerDetailsFromUser():
 
 def getInputsFromUser():
     # need to remove following 2 lines 
-    inputDetails = '192.168.149.3 ece792 welcome1'
+    inputDetails = '192.168.149.6 ece792 EcE792net!'
     hypervisor1Details = inputDetails.strip().split(" ")
     #hypervisor1Details = getHypervisorDetailsFromUser()
     
-    inputDetails1 = '192.168.149.6 ece792 EcE792net!'
+    inputDetails1 = '192.168.149.3 ece792 welcome1'
     hypervisor2Details = inputDetails1.strip().split(" ")
     #hypervisor2Details = getHypervisorDetailsFromUser()
    
@@ -612,7 +612,7 @@ def writeServerIpsfile():
                 csv_write_file.write('\n')
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
-	command = 'sshpass -p '+ password +' scp -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
+	command = 'sshpass -p '+ password +' scp -c aes128-ctr -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
         print (command)
         os.system(command)
 
@@ -714,14 +714,14 @@ def transferFileToLB():
         listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
 
         staticDictForLBIps = {}
-
-        staticDictForLBIps['LB101'] = '192.168.20.1'
-        staticDictForLBIps['LB102'] = '192.168.20.2'
-        staticDictForLBIps['LB201'] = '192.168.20.10'
-        staticDictForLBIps['LB202'] = '192.168.20.11'
+s
+        staticDictForLBIps['LB101'] = '192.168.98.27'
+        staticDictForLBIps['LB102'] = '192.168.98.26'
+        staticDictForLBIps['LB201'] = '192.168.98.25'
+        staticDictForLBIps['LB202'] = '192.168.98.24'
 	for lbName in listOfAllLBs:
-		if(lbName in dictOfNCLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
-			ip = dictOfNCLBIps[lbName]
+		if(lbName in staticDictForLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
+			ip = staticDictForLBIps[lbName]
 			currentWorkingDirectory = os.getcwd()
     			destDirectory = '/tmp'
     			fileName = 'customer_vms.txt'
