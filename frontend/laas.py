@@ -65,27 +65,27 @@ def initialize():
     assignStaticIPToLB() 
 
     ### create Servers according to requirement
-    createServersInrespectiveHypervisor()
+    #createServersInrespectiveHypervisor()
 
     ### get default ips of all servers
-    collectIpsForServers()
+    #collectIpsForServers()
 
     ## attach server to data network
-    attachServersToNetwork()
+    #attachServersToNetwork()
 
     ### assign static ips to just created servers vxlan interfaces
-    assignStaticIPToServer()
+    #assignStaticIPToServer()
 
     ### write LBs and their ips to file
-    writeLBsAndTheirIPsToFile()
+    #writeLBsAndTheirIPsToFile()
     
     ####  writing server ips to file 
-    writeServerIpsfile();   
+    #writeServerIpsfile();   
    
     ### push server name file to all lbs 	
-    transferFileToLB()
+    #transferFileToLB()
 
-    doLoadBalncingONLBVMs()
+    #doLoadBalncingONLBVMs()
 
 
 
@@ -289,13 +289,13 @@ def collectIpsForLBs():
     tries2 = 5
     while( tries1 > 0): 
     	getIpsFromNCHypervisor(uri1)
-    	if('LB101' in dictOfNCLBIps and 'LB102' in dictOfNCLBIps and 'LB101' in dictOfNCLBDefaultMac and 'LB102' in dictOfNCLBDefaultMac ):
+    	if('LB401' in dictOfNCLBIps and 'LB402' in dictOfNCLBIps and 'LB401' in dictOfNCLBDefaultMac and 'LB402' in dictOfNCLBDefaultMac ):
 		break
 	tries1 -= 1
     
     while( tries2 > 0): 
    	getIpsFromNCHypervisor(uri2)
-    	if('LB201' in dictOfNCLBIps and 'LB202' in dictOfNCLBIps and 'LB201' in dictOfNCLBDefaultMac and 'LB202' in dictOfNCLBDefaultMac ):
+    	if('LB501' in dictOfNCLBIps and 'LB502' in dictOfNCLBIps and 'LB501' in dictOfNCLBDefaultMac and 'LB502' in dictOfNCLBDefaultMac ):
                 break
         tries2 -= 1	
     return
@@ -312,12 +312,12 @@ def attachLBsToVxlanNetwork():
     detachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'default')
  
     ### attach data network of vxlan 
-    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan1')
-    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan1')
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan200')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan200')
     
     ### attach management network of vxlan
-    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan2')
-    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan2')
+    attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'vxlan201')
+    attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2LBs, 'vxlan202')
 
     ## attach default network 
     attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1LBs, 'default')
@@ -367,25 +367,41 @@ def handleCreationOfNCLoadBalancers():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
  
-    listOfLBInHypervisor1 = ['LB101', 'LB102']
-    listOfLBInHypervisor2 = ['LB201', 'LB202']
+    listOfLBInHypervisor1 = ['LB401', 'LB402']
+    listOfLBInHypervisor2 = ['LB501', 'LB502']
     ## create lbs in hypervisor 1
     createNCLoadBalancers(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfLBInHypervisor1)
     ## create lbs in hypervisor 2 
     createNCLoadBalancers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfLBInHypervisor2)
+
+def attachStaticInterfaceToManagementVM(ipaddr, username, password, networkName):
+    ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
+    LBName = "FSarVM"
+    command_to_attach_iface = 'virsh attach-interface --domain '+ LBName + ' --type network --source '+ networkName +' --model virtio --config --live'
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+    print(ssh_stdout.read(), ssh_stderr.read())
+    time.sleep(1)
+    ssh.close()
+    return
+
+def assignStaticIpToManagementVM():
+    os.system('ip addr add 192.168.111.70/24 dev eth1')
+
 
 def createTunnelsForManagementAndDataFlow():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
  
     ## creating tunnel for data flow
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr1', 'vxlan101', '41', ipOfHypervisor2 )
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr1', 'vxlan101', '41', ipOfHypervisor1)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr200', 'vxlan200', '51', ipOfHypervisor2 )
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr200', 'vxlan200', '51', ipOfHypervisor1)
 
     ## creating tunnel for management of lbs
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr2', 'vxlan102', '42',ipOfHypervisor2)
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr2', 'vxlan102', '42', ipOfHypervisor1)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr201', 'vxlan201', '52',ipOfHypervisor2)
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr201', 'vxlan201', '52', ipOfHypervisor1)
 
+    attachStaticInterfaceToManagementVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, 'vxlan201')
+    assignStaticIpToManagementVM()
 
 def getIpsFromNCHypervisor(connectionURI):
 	global dictOfNCLBIps, dictOfNCLBDefaultMac 
@@ -722,7 +738,7 @@ def assignStaticIPToLB():
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
+	input_static_ip_script = "LB401,LB402" + " " + dictOfNCLBIps["LB401"] + "," + dictOfNCLBIps["LB402"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
@@ -737,7 +753,7 @@ def assignStaticIPToLB():
         print(ssh_stdout.readlines())
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
+	input_static_ip_script = "LB501,LB502" + " " + dictOfNCLBIps["LB501"] + "," + dictOfNCLBIps["LB502"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
