@@ -45,7 +45,7 @@ def assignLBAccordingToTime():
 			key = listOfLB[j]
 			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
 				
-	else if( currentHour == 20):
+	elif( currentHour == 20):
 		for i in range(2,4):   
                         key = listOfLB[i]
                         if(key in dictOfLBWithTheirIp): 
