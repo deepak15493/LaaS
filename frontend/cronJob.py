@@ -116,6 +116,12 @@ def assignStaticIpToLB():
 	 return
 
 def resumeNCLB(nameOfLB):
+	ssh = None
+        if(nameOfLB == "LB102"):
+                ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!")
+        elif (nameOfLB == "LB202"):
+                ssh = getSshInstanceFromParamiko("192.168.149.3" , "ece792" , "welcome1")
+
 	command_to_start_lb =  'virsh resume ' + nameOfLB
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
 	print(ssh_stdout.readlines())
