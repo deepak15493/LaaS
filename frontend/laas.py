@@ -43,38 +43,39 @@ def initialize():
     
     getInputsFromUser()
     ### setting up network
-    createCustomerNetwork()
-    createManagementNetwork()
+    #createCustomerNetwork()
+    #createManagementNetwork()
  
     ### creating tunnels for both Mangement and data flow   
-    createTunnelsForManagementAndDataFlow()
+    #createTunnelsForManagementAndDataFlow()
 
     ### create 4 load balancers in AWS
     # createAWSLoadBalancers()
     
     ### create 4 NC load balancers
-    handleCreationOfNCLoadBalancers( )
+    #handleCreationOfNCLoadBalancers( )
     
     ### get default ips of all load balancers
-    collectIpsForLBs()
+    #collectIpsForLBs()
     
     ### attach load balancers to vxlan network
-    attachLBsToVxlanNetwork()
+    #attachLBsToVxlanNetwork()
     
+    collectIpsForLBs() 
     ### assign static ips to just created load balancers vxlan interfaces
-    assignStaticIPToLB() 
+    #assignStaticIPToLB() 
 
     ### create Servers according to requirement
     #createServersInrespectiveHypervisor()
 
     ### get default ips of all servers
-    #collectIpsForServers()
+    collectIpsForServers()
 
     ## attach server to data network
     #attachServersToNetwork()
 
     ### assign static ips to just created servers vxlan interfaces
-    #assignStaticIPToServer()
+    assignStaticIPToServer()
 
     ### write LBs and their ips to file
     #writeLBsAndTheirIPsToFile()
@@ -131,7 +132,7 @@ def assignStaticIPToServer():
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "SERVER100,SERVER101" + " " + dictOfNCServerIps["SERVER100"] + "," + dictOfNCServerIps["SERVER101"] + " 1" 
+	input_static_ip_script = "SERVER110,SERVER111" + " " + dictOfNCServerIps["SERVER110"] + "," + dictOfNCServerIps["SERVER111"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
@@ -146,7 +147,7 @@ def assignStaticIPToServer():
         print(ssh_stdout.readlines())
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "SERVER110,SERVER111" + " " + dictOfNCServerIps["SERVER110"] + "," + dictOfNCServerIps["SERVER111"] + " 2" 
+	input_static_ip_script = "SERVER220,SERVER221" + " " + dictOfNCServerIps["SERVER220"] + "," + dictOfNCServerIps["SERVER221"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
@@ -165,13 +166,13 @@ def collectIpsForServers():
     tries2 = 5
     while( tries1 > 0):
         getIpsFromNCServers(uri1)
-        if('SERVER100' in dictOfNCServerIps and 'SERVER101' in dictOfNCServerIps and 'SERVER100' in dictOfNCServerDefaultMac and 'SERVER101' in dictOfNCServerDefaultMac ):
+        if('SERVER110' in dictOfNCServerIps and 'SERVER111' in dictOfNCServerIps and 'SERVER110' in dictOfNCServerDefaultMac and 'SERVER111' in dictOfNCServerDefaultMac ):
                 break
         tries1 -= 1
 
     while( tries2 > 0):
         getIpsFromNCServers(uri2)
-	if('SERVER110' in dictOfNCServerIps and 'SERVER111' in dictOfNCServerIps and 'SERVER110' in dictOfNCServerDefaultMac and 'SERVER111' in dictOfNCServerDefaultMac ):                
+	if('SERVER220' in dictOfNCServerIps and 'SERVER221' in dictOfNCServerIps and 'SERVER220' in dictOfNCServerDefaultMac and 'SERVER221' in dictOfNCServerDefaultMac ):                
 		break
         tries2 -= 1
     return
@@ -186,16 +187,16 @@ def attachServersToNetwork():
 
     if('hypervisor1' in mapOfHypervisorToServer):
 	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
-		nameOfServer = 'SERVER10'+ str(count)
+		nameOfServer = 'SERVER11'+ str(count)
 		listOfServersInHypervisor1.append(nameOfServer)
-    	attachHypervisorServers(ipOfHypervisor1,userNameOfHypervisor1, passwordOfHypervisor1, listOfServersInHypervisor1,'vxlan1' )
+    	attachHypervisorServers(ipOfHypervisor1,userNameOfHypervisor1, passwordOfHypervisor1, listOfServersInHypervisor1,'vxlan201' )
     	  
 
     if('hypervisor2' in mapOfHypervisorToServer):
 	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
-		nameOfServer = 'SERVER11' + str(count)
+		nameOfServer = 'SERVER22' + str(count)
 		listOfServersInHypervisor2.append(nameOfServer)
- 	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan1')
+ 	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan201')
     
 
 
@@ -252,7 +253,7 @@ def createServersInrespectiveHypervisor():
     ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
     if('hypervisor1' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
-       		nameOfServer = 'SERVER10'+ str(count)
+       		nameOfServer = 'SERVER11'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
     ssh.close()
 
@@ -260,7 +261,7 @@ def createServersInrespectiveHypervisor():
     ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
     if('hypervisor2' in mapOfHypervisorToServer):
     	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
-       		nameOfServer = 'SERVER11'+ str(count)
+       		nameOfServer = 'SERVER22'+ str(count)
 		createServerInHypervisor(nameOfServer, ssh)
     ssh.close()
     return    
@@ -406,8 +407,10 @@ def createTunnelsForManagementAndDataFlow():
 def getIpsFromNCHypervisor(connectionURI):
 	global dictOfNCLBIps, dictOfNCLBDefaultMac 
 	conn = libvirt.open(connectionURI)
-	domains = conn.listAllDomains()
-        for domain in domains:
+	domainIDs = conn.listDomainsID()
+	#domains = conn.listDomains()
+        for domainID in domainIDs:
+		domain = conn.lookupByID(domainID)
                 if(domain.name().startswith( 'LB' )):
                      ifaces = domain.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                      if(bool(ifaces)):
@@ -741,6 +744,7 @@ def assignStaticIPToLB():
 	input_static_ip_script = "LB401,LB402" + " " + dictOfNCLBIps["LB401"] + "," + dictOfNCLBIps["LB402"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
+	print(command_to_run_static_ip_script)
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
 	ssh.close()
@@ -755,6 +759,7 @@ def assignStaticIPToLB():
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB501,LB502" + " " + dictOfNCLBIps["LB501"] + "," + dictOfNCLBIps["LB502"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
+	print(command_to_run_static_ip_script)
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
 	ssh.close()

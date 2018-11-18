@@ -30,7 +30,6 @@ def assignStaticIPOnHypervisor2():
 	last_octet = 25 ;
 		
 	for LBIP in listOfIPOfLBs:
-		print " LBIP ", LBIP
 		ssh = getSshInstanceFromParamiko(LBIP , "root" , "tushar123");	
     		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.110.' + str(last_octet) + '/24 dev eth0'
     		command_to_assign_static_ip_eth1 = 'ip addr add 192.168.111.' + str(last_octet) + '/24 dev eth1'

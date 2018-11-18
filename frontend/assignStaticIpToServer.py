@@ -12,11 +12,11 @@ listOfIPOfServers=[]
 
 def assignStaticIPOnHypervisor1():
 	global listOfServers,listOfIPOfServers
-	last_octet = 50 ;
+	last_octet = 51 ;
 		
 	for ServerIP in listOfIPOfServers:
 		ssh = getSshInstanceFromParamiko(ServerIP , "root" , "tushar123");	
-    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.10.' + str(last_octet) + '/24 dev eth0'
+    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.111.' + str(last_octet) + '/24 dev eth0'
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
     		print(ssh_stdout.readlines())
 		last_octet += 1
@@ -24,12 +24,12 @@ def assignStaticIPOnHypervisor1():
 
 def assignStaticIPOnHypervisor2():
 	global listOfServers,listOfIPOfServers
-	last_octet = 60 ;
+	last_octet = 53 ;
 		
 	for ServerIP in listOfIPOfServers:
 		print " ServerIP ", ServerIP
 		ssh = getSshInstanceFromParamiko(ServerIP , "root" , "tushar123");	
-    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.10.' + str(last_octet) + '/24 dev eth0'
+    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.111.' + str(last_octet) + '/24 dev eth0'
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
     		print(ssh_stdout.readlines())
 		last_octet += 1
