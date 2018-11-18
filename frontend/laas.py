@@ -725,7 +725,6 @@ def transferFileToLB():
         listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
 
         staticDictForLBIps = {}
-s
         staticDictForLBIps['LB101'] = '192.168.98.27'
         staticDictForLBIps['LB102'] = '192.168.98.26'
         staticDictForLBIps['LB201'] = '192.168.98.25'
