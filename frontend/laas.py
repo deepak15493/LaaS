@@ -626,18 +626,27 @@ def assignStaticIPToLB():
 	currentWorkingDirectory = os.getcwd()
 	destDirectory = '/tmp'
 	staticIPScript = "assignStaticIp.py"
+	staticAssignLastToLBIPScript = "cronAssignStaticIPs.py"
 	### Copy script on hypervisor 
 	cpFileToVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, currentWorkingDirectory, destDirectory, staticIPScript ) 
 		
 	cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticIPScript ) 
 
+	### Copy assign last 2 vms IP on hypervisor 
+        cpFileToVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, currentWorkingDirectory, destDirectory, staticAssignLastToLBIPScript )
+
+        cpFileToVM(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, currentWorkingDirectory, destDirectory, staticAssignLastToLBIPScript )
 
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
 
 	### give file executing permission
 	command_to_change_permission = 'chmod 777 /tmp/'+ staticIPScript
+	command_to_change_permission_for_last_2_lb = 'chmod 777 /tmp/'+ staticAssignLastToLBIPScript
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
 	print(ssh_stdout.readlines())
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission_for_last_2_lb)
+	print(ssh_stdout.readlines())
+
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
@@ -654,6 +663,8 @@ def assignStaticIPToLB():
 
  	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
         print(ssh_stdout.readlines())
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission_for_last_2_lb)
+        print(ssh_stdout.readlines())  
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
@@ -726,6 +737,7 @@ s
     			destDirectory = '/tmp'
     			fileName = 'customer_vms.txt'
 			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectory, destDirectory, fileName ) 
+
 
 if __name__ == "__main__":
 	initialize()
