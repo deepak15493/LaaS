@@ -65,7 +65,7 @@ def assignLBAccordingToTime():
 
 def transferFileToDNSServer():
         global dnsVMPassword, dnsUserName, dnsVMIP
-	command = 'sshpass -p '+ dnsPassword +' scp -c aes128-ctr -o StrictHostKeyChecking=no /home/ece792/LaaS/updated_load_balancers.txt '+ dnsUserName  +'@'+ dnsVMIP +':/tmp'
+	command = 'sshpass -p '+ dnsPassword +' scp -c aes128-ctr -o StrictHostKeyChecking=no /home/ece792/LaaS/frontend/updated_load_balancers.txt '+ dnsUserName  +'@'+ dnsVMIP +':/tmp'
 	#print (command)
 	os.system(command)
 
