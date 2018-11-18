@@ -12,33 +12,33 @@ listOfIPOfLBs=[]
 
 def assignStaticIPOnHypervisor1():
 	global listOfLBs,listOfIPOfLBs
-	last_octet = 1 ;
+	last_octet = 5 ;
 		
 	for LBIP in listOfIPOfLBs:
 		ssh = getSshInstanceFromParamiko(LBIP , "root" , "tushar123");	
-    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.10.' + str(last_octet) + '/24 dev eth0'
-    		command_to_assign_static_ip_eth1 = 'ip addr add 192.168.20.' + str(last_octet) + '/24 dev eth1'
+    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.110.' + str(last_octet) + '/24 dev eth0'
+    		command_to_assign_static_ip_eth1 = 'ip addr add 192.168.111.' + str(last_octet) + '/24 dev eth1'
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
     		print(ssh_stdout.readlines())
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth1)
     		print(ssh_stdout.readlines())
-		last_octet += 1
+		last_octet += 10
 	ssh.close()
 
 def assignStaticIPOnHypervisor2():
 	global listOfLBs,listOfIPOfLBs
-	last_octet = 10 ;
+	last_octet = 25 ;
 		
 	for LBIP in listOfIPOfLBs:
 		print " LBIP ", LBIP
 		ssh = getSshInstanceFromParamiko(LBIP , "root" , "tushar123");	
-    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.10.' + str(last_octet) + '/24 dev eth0'
-    		command_to_assign_static_ip_eth1 = 'ip addr add 192.168.20.' + str(last_octet) + '/24 dev eth1'
+    		command_to_assign_static_ip_eth0 = 'ip addr add 192.168.110.' + str(last_octet) + '/24 dev eth0'
+    		command_to_assign_static_ip_eth1 = 'ip addr add 192.168.111.' + str(last_octet) + '/24 dev eth1'
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
     		print(ssh_stdout.readlines())
     		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth1)
     		print(ssh_stdout.readlines())
-		last_octet += 1
+		last_octet += 10
 	ssh.close()
 
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 	arrOfLBs = (sys.argv[1]).strip().split(",")
 	arrIPOfLBs = (sys.argv[2]).strip().split(",")
 	hypervisorFlag = sys.argv[3].strip()
-	
+	print(arrIPOfLBs)
 	for LB in arrOfLBs:
 		listOfLBs.append(LB)
 	
