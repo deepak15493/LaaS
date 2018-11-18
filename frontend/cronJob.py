@@ -36,7 +36,7 @@ def assignLBAccordingToTime():
 	currentHour = dt.datetime.now().hour
 	updatedDictOfLB = {}
 
-	if(currentHour == 19):
+	if(currentHour == 20):
 		print("trying to suspend lbs")
 		for i in range(2,4):
 			key = listOfLB[i]
@@ -46,7 +46,7 @@ def assignLBAccordingToTime():
 			key = listOfLB[j]
 			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
 				
-	elif( currentHour == 20):
+	elif( currentHour == 21):
 		for i in range(2,4):   
                         key = listOfLB[i]
                         if(key in dictOfLBWithTheirIp): 
@@ -81,7 +81,7 @@ def writeUpdatedLBIpsToFile(updatedDictOfLB):
 
 def readIPListOfLoadBalancersFromFile():
 	global dictOfLBWithTheirIp
-	with open('load_balancers.txt', 'r') as csv_file:
+	with open('/root/LaaS/frontend/load_balancers.txt', 'r') as csv_file:
 		reader = csv.reader(csv_file, delimiter=',')
 		for row in reader:
 		        dictOfLBWithTheirIp[row[0]] = row[1]
@@ -116,6 +116,12 @@ def assignStaticIpToLB():
 	 return
 
 def resumeNCLB(nameOfLB):
+	ssh = None
+        if(nameOfLB == "LB102"):
+                ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!")
+        elif (nameOfLB == "LB202"):
+                ssh = getSshInstanceFromParamiko("192.168.149.3" , "ece792" , "welcome1")
+
 	command_to_start_lb =  'virsh resume ' + nameOfLB
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
 	print(ssh_stdout.readlines())
