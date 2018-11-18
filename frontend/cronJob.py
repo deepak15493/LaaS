@@ -1,5 +1,6 @@
 import os
 import csv
+import paramiko
 import datetime as dt
 
 dictOfLBWithTheirIp = {}
@@ -33,7 +34,7 @@ def assignLBAccordingToTime():
 	#check if current time is am or pm and according to rule assign or shut lb
 	global listOfLB, dictOfLBWithTheirIp
 	currentHour = dt.datetime.now().hour
-	updatecDictOfLB = {}
+	updatedDictOfLB = {}
 
 	if(currentHour == 19):
 		print("trying to suspend lbs")
@@ -55,17 +56,17 @@ def assignLBAccordingToTime():
 		assignStaticIpToLB()
 		for j in range(0,4):
 			key = listOfLB[j]
-			updatecDictOfLB[key] = dictOfLBWithTheirIp[key]
+			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
 
 	### write updated load balancer ips
-	writeUpdatedLBIpsToFile(updatecDictOfLB)
+	writeUpdatedLBIpsToFile(updatedDictOfLB)
 	transferFileToDNSServer()
 	return	
 
 
 def transferFileToDNSServer():
         global dnsVMPassword, dnsUserName, dnsVMIP
-	command = 'sshpass -p '+ dnsPassword +' scp -c aes128-ctr -o StrictHostKeyChecking=no /home/ece792/LaaS/frontend/updated_load_balancers.txt '+ dnsUserName  +'@'+ dnsVMIP +':/tmp'
+	command = 'sshpass -p '+ dnsPassword +' scp -c aes128-ctr -o StrictHostKeyChecking=no /root/LaaS/frontend/updated_load_balancers.txt '+ dnsUserName  +'@'+ dnsVMIP +':/tmp'
 	#print (command)
 	os.system(command)
 
@@ -90,19 +91,15 @@ def readIPListOfLoadBalancersFromFile():
 def suspendNCLB(nameOfLB):
 	ssh = None
 	if(nameOfLB == "LB102"):
-		ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!");	
-	else if (nameOfLB == "LB202"):
-		ssh = getSshInstanceFromParamiko("192.168.149.3" , "ece792" , "welcome1");
+		ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!")
+	elif (nameOfLB == "LB202"):
+		ssh = getSshInstanceFromParamiko("192.168.149.3" , "ece792" , "welcome1")
 
 	command_to_suspend_lb = 'virsh suspend ' + nameOfLB 
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_suspend_lb)
-	if (ssh_stdout.readlines()
-		print(ssh_stderr.readlines())
-		print(nameOfLB , " suspended successfully!")
-	else: 
-		print(nameOfLB + " error while suspending")
+	print(ssh_stdout.readlines())
+	print(nameOfLB , " suspended successfully!")
 	return
-
 
 def assignStaticIpToLB():
 	 ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!");
@@ -116,17 +113,13 @@ def assignStaticIpToLB():
          ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_staticIP_assign_script)
   	 print(ssh_stdout.readlines())
 	 ssh.close()
-	return
+	 return
 
 def resumeNCLB(nameOfLB):
 	command_to_start_lb =  'virsh resume ' + nameOfLB
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
-	
-	if (ssh_stdout.readlines() != None):
-		print(ssh_stdout.readlines())
-                print(nameOfLB , " started successfully")
-	else:
-		print (ssh_stderr.readlines())
+	print(ssh_stdout.readlines())
+        print(nameOfLB , " started successfully")
 	return
 
 
