@@ -689,7 +689,7 @@ def assignStaticIPToLB():
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "LB101,LB102" + " " + dictOfNCLBIps["LB101"] + "," + dictOfNCLBIps["LB102"] + " 1" 
+	input_static_ip_script = "LB401,LB402" + " " + dictOfNCLBIps["LB401"] + "," + dictOfNCLBIps["LB402"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
@@ -706,7 +706,7 @@ def assignStaticIPToLB():
         print(ssh_stdout.readlines())  
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
-	input_static_ip_script = "LB201,LB202" + " " + dictOfNCLBIps["LB201"] + "," + dictOfNCLBIps["LB202"] + " 2" 
+	input_static_ip_script = "LB501,LB502" + " " + dictOfNCLBIps["LB501"] + "," + dictOfNCLBIps["LB502"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
 	print(ssh_stdout.readlines())
