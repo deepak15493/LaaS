@@ -85,6 +85,29 @@ def initialize():
     ### push server name file to all lbs 	
     transferFileToLB()
 
+    doLoadBalncingONLBVMs()
+
+
+
+def doLoadBalncingONLBVMs():
+	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
+        listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
+
+        staticDictForLBIps = {}
+        staticDictForLBIps['LB101'] = '192.168.98.27'
+        staticDictForLBIps['LB102'] = '192.168.98.26'
+        staticDictForLBIps['LB201'] = '192.168.98.25'
+        staticDictForLBIps['LB202'] = '192.168.98.24'
+        for lbName in listOfAllLBs:
+                if(lbName in staticDictForLBIps):
+			ssh = getSshInstanceFromParamiko(staticDictForLBIps[lbName], 'root', 'tushar123')
+			command_to_execute_handle_iptable = 'bash /tmp/handle_iptable.sh'
+			ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_handle_iptable)
+			print(ssh_stdout.readlines())			
+			command_to_execute_iptables_wrapper = 'bash /tmp/iptable_wrapper.sh'
+			ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_iptables_wrapper)
+                        print(ssh_stdout.readlines())
+
 def assignStaticIPToServer():
 	global dictOfNCServerIps, lbPassword, lbUserName 
         global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
@@ -735,7 +758,12 @@ def transferFileToLB():
 			currentWorkingDirectory = os.getcwd()
     			destDirectory = '/tmp'
     			fileName = 'customer_vms.txt'
+			currentWorkingDirectoryForShell = '/root/LaaS/lbconfig/iptables/'
+			ipTablesFileName = 'handle_iptables.sh'
+			ipTableWrapperFileName = 'iptable_wrapper.sh'
 			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectory, destDirectory, fileName ) 
+			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectoryForShell, destDirectory, ipTablesFileName ) 
+			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectoryForShell, destDirectory, ipTableWrapperFileName ) 
 
 
 if __name__ == "__main__":
