@@ -38,8 +38,8 @@ def initialize():
     lbUserName = 'root'
     lbPassword = 'tushar123'
 
-    listOfHypervisor1LBs = ['LB101', 'LB102'] 
-    listOfHypervisor2LBs = [ 'LB201','LB202']
+    listOfHypervisor1LBs = ['LB401', 'LB402'] 
+    listOfHypervisor2LBs = [ 'LB501','LB502']
     
     getInputsFromUser()
     ### setting up network
@@ -468,9 +468,9 @@ def createCustomerNetwork():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
  
-    bridgeNameForNetwork1 = 'vxlanbr1'
-    fileNameForNetwork1 = 'vxlan1.xml'
-    networkName1 = 'vxlan1'
+    bridgeNameForNetwork1 = 'vxlanbr200'
+    fileNameForNetwork1 = 'vxlan200.xml'
+    networkName1 = 'vxlan200'
     
     #create network in hypervisor1
     createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
@@ -481,9 +481,9 @@ def createManagementNetwork():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
 
-    bridgeNameForNetwork2 = 'vxlanbr2'
-    fileNameForNetwork2 = 'vxlan2.xml'
-    networkName2 = 'vxlan2'
+    bridgeNameForNetwork2 = 'vxlanbr201'
+    fileNameForNetwork2 = 'vxlan201.xml'
+    networkName2 = 'vxlan201'
      #create network in hypervisor1
     createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
     #create network in hypervisor2
