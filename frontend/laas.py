@@ -32,7 +32,6 @@ userNameOfHypervisor2 = ''
 passwordOfHypervisor2 = ''
 
 def initialize():
-    print ("Initializing")
     #initialize lb credentials
     global listOfHypervisor1LBs, listOfHypervisor2LBs, lbUserName, lbPassword, mapOfHypervisorToServer
     lbUserName = 'root'
@@ -55,18 +54,25 @@ def initialize():
     # createAWSLoadBalancers()
     
     ### create 4 NC load balancers
-    #handleCreationOfNCLoadBalancers( )
+    handleCreationOfNCLoadBalancers( )
     
     ### get default ips of all load balancers
-    #collectIpsForLBs()
+    collectIpsForLBs()
     
     ### attach load balancers to vxlan network
-    #attachLBsToVxlanNetwork()
+    attachLBsToVxlanNetwork()
     
-    #collectIpsForLBs() 
-    ### assign static ips to just created load balancers vxlan interfaces
-    #assignStaticIPToLB() 
+    collectIpsForLBs() 
 
+    print("Waiting for 30 seconds before assigning static ips to load balancers") 
+    time.sleep(30)
+
+    ### assign static ips to just created load balancers vxlan interfaces
+    assignStaticIPToLB() 
+
+    time.sleep(25)
+    
+    assignStaticIPToLB() 
     ### create Servers according to requirement
     #createServersInrespectiveHypervisor()
 
@@ -285,7 +291,8 @@ def collectIpsForLBs():
     global  dictOfNCLBDefaultMac, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2    
 
-
+    print("waiting for 40 sec before starting collecting ")
+    time.sleep(40)
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
     tries1 = 5
@@ -294,12 +301,16 @@ def collectIpsForLBs():
     	getIpsFromNCHypervisor(uri1)
     	if('LB401' in dictOfNCLBIps and 'LB402' in dictOfNCLBIps and 'LB401' in dictOfNCLBDefaultMac and 'LB402' in dictOfNCLBDefaultMac ):
 		break
+        print("Failed to collect ips from all LBs. Retrying in 15 seconds")
+        time.sleep(15)
 	tries1 -= 1
     
     while( tries2 > 0): 
    	getIpsFromNCHypervisor(uri2)
     	if('LB501' in dictOfNCLBIps and 'LB502' in dictOfNCLBIps and 'LB501' in dictOfNCLBDefaultMac and 'LB502' in dictOfNCLBDefaultMac ):
                 break
+        print("Failed to collect ips from all LBs. Retrying in 15 seconds")
+        time.sleep(15)
         tries2 -= 1	
     return
 
@@ -423,13 +434,12 @@ def getIpsFromNCHypervisor(connectionURI):
 		             if 'hwaddr' in value:	
                                      dictOfNCLBDefaultMac[domain.name()] = value['hwaddr']
 				
-	print("printing the dict of load balancer name to ips")
-        for k, v in dictOfNCLBIps.iteritems():
-                print k , v
-	print("printing the dict of load balancer name to macs")
-        for k, v in dictOfNCLBDefaultMac.iteritems():
-                print k , v
-	time.sleep(15)
+#	print("printing the dict of load balancer name to ips")
+#        for k, v in dictOfNCLBIps.iteritems():
+#                print k , v
+#	print("printing the dict of load balancer name to macs")
+#        for k, v in dictOfNCLBDefaultMac.iteritems():
+#                print k , v
 	conn.close()
 
 def setAWSServerList():
@@ -557,15 +567,16 @@ def destroyLBsIfExistsInHypervisor(ssh):
     return
 
 def createLBInNCHypervisor(nameOfLoadBalancer, ssh):
+    print("Cloning load balancers "+ nameOfLoadBalancer)
     command_to_clone_lbs = 'virt-clone --original BASELB1 --name ' + nameOfLoadBalancer + ' --auto-clone'
     command_to_start_lb = 'virsh start ' + nameOfLoadBalancer
     #destroyLBsIfExistsInHypervisor(ssh)
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_lbs)
-    print(ssh_stdout.readlines())
+    ssh_stdout.readlines()
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_lb)
-    print(ssh_stdout.readlines())
-    time.sleep(25)
-    print ("load bancer vim "+ nameOfLoadBalancer + "started succesfully.")
+    ssh_stdout.readlines()
+    #time.sleep(25)
+    print ("Load Balancer " + nameOfLoadBalancer + "started succesfully.")
     return
 
 def getSshInstanceFromParamiko(ipaddress, username, password):
@@ -583,6 +594,8 @@ def createNCLoadBalancers(ipaddr, username, password, listOfLBs):
      for nameOfLoadBalancer in listOfLBs:
         createLBInNCHypervisor(nameOfLoadBalancer, ssh)
 
+     print("waiting 5 seconds after creating all LBs ")
+     time.sleep(5)
      ssh.close()
      return
 
@@ -745,16 +758,15 @@ def assignStaticIPToLB():
 	### give file executing permission
 	command_to_change_permission = 'chmod 777 /tmp/'+ staticIPScript
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
-	print(ssh_stdout.readlines())
+	ssh_stdout.readlines()
 
 	### Run script on Hypervisor [ Assigns static IP on Load Balancer VM's customer and management network ]
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB401,LB402" + " " + dictOfNCLBIps["LB401"] + "," + dictOfNCLBIps["LB402"] + " 1" 
 
 	command_to_run_static_ip_script += input_static_ip_script
-	print(command_to_run_static_ip_script)
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
-	print(ssh_stdout.readlines())
+	ssh_stdout.readlines()
 	ssh.close()
 
 
@@ -762,14 +774,13 @@ def assignStaticIPToLB():
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
 
  	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
-        print(ssh_stdout.readlines())
+        ssh_stdout.readlines()
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "LB501,LB502" + " " + dictOfNCLBIps["LB501"] + "," + dictOfNCLBIps["LB502"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
-	print(command_to_run_static_ip_script)
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
-	print(ssh_stdout.readlines())
+	ssh_stdout.readlines()
 	ssh.close()
 
 def transferFileToLB():
