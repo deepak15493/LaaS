@@ -92,17 +92,71 @@ def initialize():
     #assignStaticIPToServer()
 
     ### write LBs and their ips to file
-    writeLBsAndTheirIPsToFile()
+    #writeLBsAndTheirIPsToFile()
     
     ####  writing server ips to file 
-    writeServerIpsfile();   
+    #writeServerIpsfile();   
    
+    #time.sleep(1)
     ### push server name file to all lbs 	
-    transferFileToLB()
+    #transferFileToLB()
 
+    attachDataNetworkToDNSServer()
+    ### transfering files from hypervisor to LBs
+    #transferFilesToLBFromHyperviesor()
     #doLoadBalncingONLBVMs()
 
 
+def transferFilesToLBFromHyperviesor():
+	global ipOfHypervisor1, passwordOfHypervisor1, userNameOfHypervisor1
+	global ipOfHypervisor2, passwordOfHypervisor2, userNameOfHypervisor2, dictOfNCLBIps
+	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1 )
+	
+	command_to_execute_401 = "python /tmp/runHandle_iptables.py "+ dictOfNCLBIps['LB401'] 
+	command_to_execute_402 = "python /tmp/runHandle_iptables.py "+ dictOfNCLBIps['LB402']
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_401)
+        ssh_stdout.read(), ssh_stderr.read()
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_402)
+        ssh_stdout.read(), ssh_stderr.read()
+
+	ssh.close()
+
+	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2 )
+	command_to_execute_501 = "python /tmp/runHandle_iptables.py "+ dictOfNCLBIps['LB501'] 
+	command_to_execute_502 = "python /tmp/runHandle_iptables.py "+ dictOfNCLBIps['LB502'] 
+
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_501)
+        ssh_stdout.read(), ssh_stderr.read()
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute_501)
+        ssh_stdout.read(), ssh_stderr.read()
+
+	ssh.close()
+	
+
+		
+
+def attachDataNetworkToDNSServer():
+	global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+	ssh= getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
+
+	command_to_attach_iface = 'virsh attach-interface --domain DNSServer --type network --source vxlan201 --model virtio --config --live'
+
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
+        ssh_stdout.read()
+        ssh.close()
+
+
+	ssh = getSshInstanceFromParamiko( '192.168.125.207', 'root', 'tushar123')
+	command_to_assign_static_ip = 'sudo ip addr add 192.168.111.91/24 dev eth1'
+        counter = 4
+        while(counter != 0):
+		ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip)
+	        ssh_stdin.write( 'tushar123\n')
+    		ssh_stdin.flush()
+    	        print(ssh_stdout.readlines())	
+       		counter -= 1
+		time.sleep(2) 
+        ssh.close()
 
 def doLoadBalncingONLBVMs():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
@@ -807,13 +861,8 @@ def transferFileToLB():
 			currentWorkingDirectory = os.getcwd()
     			destDirectory = '/tmp'
     			fileName = 'customer_vms.txt'
-			currentWorkingDirectoryForShell = '/root/LaaS/lbconfig/iptables/'
-			ipTablesFileName = 'handle_iptables.sh'
-			ipTableWrapperFileName = 'iptable_wrapper.sh'
-			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectory, destDirectory, fileName ) 
-			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectoryForShell, destDirectory, ipTablesFileName ) 
-			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectoryForShell, destDirectory, ipTableWrapperFileName ) 
-
+			cpFileToVM(ip, lbUserName, lbPassword, currentWorkingDirectory, destDirectory, fileName )
+	
 
 if __name__ == "__main__":
 	initialize()
