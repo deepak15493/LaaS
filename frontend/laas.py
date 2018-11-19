@@ -42,57 +42,63 @@ def initialize():
     
     getInputsFromUser()
     ### setting up network
-    createCustomerNetwork()
-    createManagementNetwork()
+    #createCustomerNetwork()
+    #createManagementNetwork()
  
     ### creating tunnels for both Mangement and data flow   
-    createTunnelsForManagementAndDataFlow()
+    #createTunnelsForManagementAndDataFlow()
 
     ### assigning static ip to Front end vm
-    assignStaticIpToManagementVM()
+    #assignStaticIpToManagementVM()
     ### create 4 load balancers in AWS
     # createAWSLoadBalancers()
     
     ### create 4 NC load balancers
-    handleCreationOfNCLoadBalancers( )
+    #handleCreationOfNCLoadBalancers( )
     
     ### get default ips of all load balancers
-    collectIpsForLBs()
+    #collectIpsForLBs()
     
     ### attach load balancers to vxlan network
-    attachLBsToVxlanNetwork()
+    #attachLBsToVxlanNetwork()
     
-    collectIpsForLBs() 
+    #collectIpsForLBs() 
 
-    print("Waiting for 30 seconds before assigning static ips to load balancers") 
-    time.sleep(30)
+    #print("Waiting for 40 seconds before assigning static ips to load balancers") 
+    #time.sleep(40)
 
     ### assign static ips to just created load balancers vxlan interfaces
-    assignStaticIPToLB() 
+    #assignStaticIPToLB() 
+    #assignStaticIPToLB() 
 
-    time.sleep(25)
-    
-    assignStaticIPToLB() 
+    #print("creating servers ") 
     ### create Servers according to requirement
     #createServersInrespectiveHypervisor()
 
+    #print("Waiting for 40 seconds before collecting default ips for servers")
+    #time.sleep(40)
     ### get default ips of all servers
     #collectIpsForServers()
 
     ## attach server to data network
     #attachServersToNetwork()
 
+    #time.sleep(10)
+    #collectIpsForServers()
+
+    #print("waiting for 40 seconds before assigning static ips to server")
     ### assign static ips to just created servers vxlan interfaces
+    #assignStaticIPToServer()
     #assignStaticIPToServer()
 
     ### write LBs and their ips to file
-    #writeLBsAndTheirIPsToFile()
+    writeLBsAndTheirIPsToFile()
     
     ####  writing server ips to file 
-    #writeServerIpsfile();   
+    writeServerIpsfile();   
    
     ### push server name file to all lbs 	
-    #transferFileToLB()
+    transferFileToLB()
 
     #doLoadBalncingONLBVMs()
 
@@ -144,7 +150,7 @@ def assignStaticIPToServer():
 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
-	print(ssh_stdout.readlines())
+	ssh_stdout.readlines()
 	ssh.close()
 
 
@@ -152,13 +158,13 @@ def assignStaticIPToServer():
     	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
 
  	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission)
-        print(ssh_stdout.readlines())
+        ssh_stdout.readlines()
 
 	command_to_run_static_ip_script = 'python /tmp/' + staticIPScript + ' ' 
 	input_static_ip_script = "SERVER220,SERVER221" + " " + dictOfNCServerIps["SERVER220"] + "," + dictOfNCServerIps["SERVER221"] + " 2" 
 	command_to_run_static_ip_script += input_static_ip_script
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_static_ip_script)
-	print(ssh_stdout.readlines())
+	ssh_stdout.readlines()
 	ssh.close()
 
 
@@ -166,7 +172,6 @@ def assignStaticIPToServer():
 def collectIpsForServers():
     global  dictOfNCLBDefaultMac, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
-
 
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
@@ -197,6 +202,7 @@ def attachServersToNetwork():
 	for count in range(0, mapOfHypervisorToServer['hypervisor1']):
 		nameOfServer = 'SERVER11'+ str(count)
 		listOfServersInHypervisor1.append(nameOfServer)
+	print("attaching servers in hypervisor1 to data network")
     	attachHypervisorServers(ipOfHypervisor1,userNameOfHypervisor1, passwordOfHypervisor1, listOfServersInHypervisor1,'vxlan201' )
     	  
 
@@ -204,6 +210,7 @@ def attachServersToNetwork():
 	for count in range(0, mapOfHypervisorToServer['hypervisor2']):
 		nameOfServer = 'SERVER22' + str(count)
 		listOfServersInHypervisor2.append(nameOfServer)
+	print("attaching servers in hypervisor2 to data network")
  	attachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfServersInHypervisor2,'vxlan201')
     
 
@@ -218,14 +225,15 @@ def attachHypervisorServers(ipaddr, username, password, listOfServers, networkNa
     for nameOfServer in listOfServers:
         command_to_attach_iface = 'virsh attach-interface --domain '+ nameOfServer + ' --type network --source '+ networkName +' --model virtio --config --live'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
-        print(ssh_stdout.read(), ssh_stderr.read())
+        ssh_stdout.read(), ssh_stderr.read()
+	time.sleep(1)
 
-    time.sleep(1)
 
     for nameOfServer in listOfServers:
         command_to_attach_iface = 'virsh attach-interface --domain '+ nameOfServer + ' --type network --source default --model virtio --config --live'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
-        print(ssh_stdout.read(), ssh_stderr.read())
+        ssh_stdout.read(), ssh_stderr.read()
+	time.sleep(1)
 
     ssh.close()
     return
@@ -244,19 +252,19 @@ def getIpsFromNCServers(connectionURI):
                              if 'hwaddr' in value:
                                      dictOfNCServerDefaultMac[domain.name()] = value['hwaddr']
 
-        print("printing the dict of load balancer name to ips")
-        for k, v in dictOfNCServerIps.iteritems():
-                print k , v
-        print("printing the dict of load balancer name to macs")
-        for k, v in dictOfNCServerDefaultMac.iteritems():
-                print k , v
+    #    print("printing the dict of load balancer name to ips")
+    #    for k, v in dictOfNCServerIps.iteritems():
+    #            print k , v
+    #    print("printing the dict of load balancer name to macs")
+    #    for k, v in dictOfNCServerDefaultMac.iteritems():
+    #            print k , v
         time.sleep(15)
         conn.close()	
 
 def createServersInrespectiveHypervisor():
     global mapOfHypervisorToServer, ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
-
+    print("creating servers in ....")
     # get instance of ssh from paramiko
     ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
     if('hypervisor1' in mapOfHypervisorToServer):
@@ -275,14 +283,14 @@ def createServersInrespectiveHypervisor():
     return    
 
 def createServerInHypervisor(nameOfServer, ssh): 
+    print("cloning the "+ nameOfServer)
     command_to_clone_server = 'virt-clone --original BASELB1 --name ' + nameOfServer + ' --auto-clone'
     command_to_start_server = 'virsh start ' + nameOfServer 
     #destroyLBsIfExistsInHypervisor(ssh)
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_clone_server)
-    print(ssh_stdout.readlines())
+    ssh_stdout.readlines()
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_server)
-    print(ssh_stdout.readlines())
-    time.sleep(10)
+    ssh_stdout.readlines()
     print ( nameOfServer + " started succesfully.")
     return
 
@@ -669,7 +677,7 @@ def writeLBsAndTheirIPsToFile() :
 def writeServerIpsfile():
     print('writing')
     ### converting dict to ips of servers
-    listOfServerIP = ['192.168.10.50', '192.168.10.51', '192.168.10.60', '192.168.10.61']
+    listOfServerIP = ['192.168.111.51', '192.168.111.52', '192.168.111.53', '192.168.111.54']
     with open('customer_vms.txt', mode='w') as csv_write_file:
         for ip in listOfServerIP:
 		csv_write_file.write(ip)
@@ -677,7 +685,8 @@ def writeServerIpsfile():
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -c aes128-ctr -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
-        os.system(command)
+        print(command)
+	os.system(command)
 
 
 
@@ -788,10 +797,10 @@ def transferFileToLB():
         listOfAllLBs = listOfHypervisor1LBs + listOfHypervisor2LBs
 
         staticDictForLBIps = {}
-        staticDictForLBIps['LB101'] = '192.168.98.27'
-        staticDictForLBIps['LB102'] = '192.168.98.26'
-        staticDictForLBIps['LB201'] = '192.168.98.25'
-        staticDictForLBIps['LB202'] = '192.168.98.24'
+        staticDictForLBIps['LB401'] = '192.168.111.5'
+        staticDictForLBIps['LB402'] = '192.168.111.15'
+        staticDictForLBIps['LB501'] = '192.168.111.25'
+        staticDictForLBIps['LB502'] = '192.168.111.35'
 	for lbName in listOfAllLBs:
 		if(lbName in staticDictForLBIps):	# dictOfNCLBIps is dictionary of type loadbalncerName: ipOfLoadBalancer
 			ip = staticDictForLBIps[lbName]
