@@ -43,12 +43,14 @@ def initialize():
     
     getInputsFromUser()
     ### setting up network
-    #createCustomerNetwork()
-    #createManagementNetwork()
+    createCustomerNetwork()
+    createManagementNetwork()
  
     ### creating tunnels for both Mangement and data flow   
-    #createTunnelsForManagementAndDataFlow()
+    createTunnelsForManagementAndDataFlow()
 
+    ### assigning static ip to Front end vm
+    assignStaticIpToManagementVM()
     ### create 4 load balancers in AWS
     # createAWSLoadBalancers()
     
@@ -61,7 +63,7 @@ def initialize():
     ### attach load balancers to vxlan network
     #attachLBsToVxlanNetwork()
     
-    collectIpsForLBs() 
+    #collectIpsForLBs() 
     ### assign static ips to just created load balancers vxlan interfaces
     #assignStaticIPToLB() 
 
@@ -69,13 +71,13 @@ def initialize():
     #createServersInrespectiveHypervisor()
 
     ### get default ips of all servers
-    collectIpsForServers()
+    #collectIpsForServers()
 
     ## attach server to data network
     #attachServersToNetwork()
 
     ### assign static ips to just created servers vxlan interfaces
-    assignStaticIPToServer()
+    #assignStaticIPToServer()
 
     ### write LBs and their ips to file
     #writeLBsAndTheirIPsToFile()
@@ -377,15 +379,17 @@ def handleCreationOfNCLoadBalancers():
 
 def attachStaticInterfaceToManagementVM(ipaddr, username, password, networkName):
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
-    LBName = "FSarVM"
+    LBName = "testing"
+    print("Attaching management network to front end vm")
     command_to_attach_iface = 'virsh attach-interface --domain '+ LBName + ' --type network --source '+ networkName +' --model virtio --config --live'
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
-    print(ssh_stdout.read(), ssh_stderr.read())
-    time.sleep(1)
+    ssh_stdout.readlines()
     ssh.close()
     return
 
 def assignStaticIpToManagementVM():
+    print "waiting to get interface up for current front end vm"
+    time.sleep(10)
     os.system('ip addr add 192.168.111.70/24 dev eth1')
 
 
@@ -394,15 +398,14 @@ def createTunnelsForManagementAndDataFlow():
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
  
     ## creating tunnel for data flow
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr200', 'vxlan200', '51', ipOfHypervisor2 )
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr200', 'vxlan200', '51', ipOfHypervisor1)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr200', 'vxlan200', '52', ipOfHypervisor2 )
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr200', 'vxlan200', '52', ipOfHypervisor1)
 
     ## creating tunnel for management of lbs
-    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr201', 'vxlan201', '52',ipOfHypervisor2)
-    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr201', 'vxlan201', '52', ipOfHypervisor1)
+    createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr201', 'vxlan201', '53',ipOfHypervisor2)
+    createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr201', 'vxlan201', '53', ipOfHypervisor1)
 
     attachStaticInterfaceToManagementVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, 'vxlan201')
-    assignStaticIpToManagementVM()
 
 def getIpsFromNCHypervisor(connectionURI):
 	global dictOfNCLBIps, dictOfNCLBDefaultMac 
@@ -444,7 +447,6 @@ def createAWSLoadBalancers():
     return
 
 def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, bridgeName, fileName, networkName):
-    print("creating bridge in hypervisor: " + ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     ssh = getSshInstanceFromParamiko(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor)
     #write vxlan.xml in /home/ece792
 
@@ -453,32 +455,34 @@ def createBridgeNetworkInHypervisor(ipOfHypervisor, usernameOfHypervisor, passwo
     destDirectory = '/home/ece792' 
     fileName = fileName
     cpFileToVM(ipOfHypervisor, usernameOfHypervisor, passwordOfHypervisor, currentWorkingDirectory, destDirectory, fileName )
+
+    print "Waiting 1 secs after copying network.xml file to hypervisor"
     # wait for scp to finish
-    time.sleep(5)
+    time.sleep(1)
 
     # add bridge to hypervisor 
     command_to_create_bridge = 'sudo -S brctl addbr ' + bridgeName           #vxlanbr1
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_create_bridge)
     ssh_stdin.write( passwordOfHypervisor +'\n')
     ssh_stdin.flush()
-    print(ssh_stdout.read(), ssh_stderr.read())
+    ssh_stdout.readlines()
 
     # turn bridge iface up
     command_to_turn_vxlanbr1_iface_up = 'sudo -S ip link set dev '+ bridgeName+' up'
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_turn_vxlanbr1_iface_up)
     ssh_stdin.write( passwordOfHypervisor +'\n')
     ssh_stdin.flush()
-    print(ssh_stdout.read(), ssh_stderr.read())
+    ssh_stdout.readlines()
 
     #create network  
     command_to_define_network = 'virsh net-define /home/ece792/' + fileName
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_define_network)
-    print(ssh_stdout.read(), ssh_stderr.read())
+    ssh_stdout.readlines()
 
     #start network 
     command_to_start_network = 'virsh net-start '+ networkName
     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_start_network)
-    print(ssh_stdout.read())
+    ssh_stdout.readlines()
 
     #close connection hypervisor	
     ssh.close()
@@ -491,9 +495,11 @@ def createCustomerNetwork():
     fileNameForNetwork1 = 'vxlan200.xml'
     networkName1 = 'vxlan200'
     
+    print("Creating bridge in hypervisor1 for data tunnel ")
     #create network in hypervisor1
     createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
     #create network in hypervisor2
+    print("Creating bridge in hypervisor2 for data tunnel ")
     createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork1, fileNameForNetwork1, networkName1)
 
 def createManagementNetwork():
@@ -503,8 +509,10 @@ def createManagementNetwork():
     bridgeNameForNetwork2 = 'vxlanbr201'
     fileNameForNetwork2 = 'vxlan201.xml'
     networkName2 = 'vxlan201'
+    print("Creating bridge in hypervisor1 for management tunnel ")
      #create network in hypervisor1
     createBridgeNetworkInHypervisor(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
+    print("Creating bridge in hypervisor2 for management tunnel ")
     #create network in hypervisor2
     createBridgeNetworkInHypervisor(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, bridgeNameForNetwork2, fileNameForNetwork2, networkName2)
 
@@ -514,6 +522,7 @@ def createTunnelInHypervisor(ipaddr, username, password, vxlanBridge,vxlanName,t
         # get ssh instace from paramiko
         ssh = getSshInstanceFromParamiko(ipaddr, username, password)
 
+	print("Crating tunnel "+ vxlanName + "with id " + tunnelID )
 	# commands to create tunnel 
         command_to_create_tunnel = 'sudo -S ip link add name '+ vxlanName +' type vxlan id '+ tunnelID + ' dev ens4 remote '+ remoteIPAddr +' dstport 4098'
 	command_to_turn_vxlan_iface_up = 'sudo -S ip link set dev '+ vxlanName +' up'
@@ -522,18 +531,18 @@ def createTunnelInHypervisor(ipaddr, username, password, vxlanBridge,vxlanName,t
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_create_tunnel)
         ssh_stdin.write( password+'\n')
         ssh_stdin.flush()
-        print(ssh_stdout.read(), ssh_stderr.read())
+        ssh_stdout.readlines()
 
  
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_turn_vxlan_iface_up)
         ssh_stdin.write( password +'\n')
         ssh_stdin.flush()
-        print(ssh_stdout.read(), ssh_stderr.read())
+        ssh_stdout.readlines() 
 
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_add_vxlan_iface_to_vxlan_br)
         ssh_stdin.write( password +'\n')
         ssh_stdin.flush()
-        print(ssh_stdout.read(), ssh_stderr.read())
+        ssh_stdout.readlines()
 	return
 
 def destroyLBsIfExistsInHypervisor(ssh):
@@ -655,7 +664,6 @@ def writeServerIpsfile():
  	
 def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 	command = 'sshpass -p '+ password +' scp -c aes128-ctr -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
-        print (command)
         os.system(command)
 
 
