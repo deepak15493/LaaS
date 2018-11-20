@@ -1,13 +1,13 @@
 #!/bin/bash
 
 CUSTOMER_VM_FILE="/tmp/customer_vms.txt"
-while [ 1 ]
-do
-	sleep 1
-	if [ ! -f ${CUSTOMER_VM_FILE} ];then
-		continue
-	fi
-	echo " Sleep done"
-	./handle_iptables.sh APPLY	
+#while [ 1 ]
+#do
+#	sleep 1
+if [ ! -f ${CUSTOMER_VM_FILE} ];then
+	continue
+fi
+#	echo " Sleep done"
+./handle_iptables.sh APPLY	
 
-done
+#done
