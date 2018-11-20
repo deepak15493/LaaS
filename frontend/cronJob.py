@@ -2,7 +2,7 @@ import os
 import csv
 import paramiko
 import datetime as dt
-
+import time
 dictOfLBWithTheirIp = {}
 listOfLB = []
 dnsUserName = ''
@@ -38,7 +38,7 @@ def assignLBAccordingToTime():
 	currentHour = dt.datetime.now().hour
 	updatedDictOfLB = {}
 	print("original dict ", dictOfLBWithTheirIp)
-	if(currentHour == 18):
+	if(currentHour == 10):
 		print("trying to suspend lbs")
 		for i in range(2,4):
 			key = listOfLB[i]
@@ -48,17 +48,20 @@ def assignLBAccordingToTime():
 			key = listOfLB[j]
 			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
 				
-	elif( currentHour == 19):
+	elif( currentHour == 20):
 		for i in range(2,4):   
                         key = listOfLB[i]
                         if(key in dictOfLBWithTheirIp): 
                                 resumeNCLB(key)
 				
+		print("Waiting 45 seconds for lbs to get up")
+		time.sleep(45)
 		### need to assign static ips again
 		assignStaticIpToLB()
 		for j in range(0,4):
 			key = listOfLB[j]
 			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
+
 
 	### write updated load balancer ips
 	writeUpdatedLBIpsToFile(updatedDictOfLB)
@@ -118,17 +121,20 @@ def suspendNCLB(nameOfLB):
 	return
 
 def assignStaticIpToLB():
+	 print( " executing cronAssignStatic ip command ")
 	 ssh = getSshInstanceFromParamiko("192.168.149.6" , "ece792" , "EcE792net!");
    	 command_to_run_staticIP_assign_script = 'python /tmp/cronAssignStaticIPs.py 1 '+dictOfLBWithTheirIp['LB402']	 
          ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_staticIP_assign_script)
   	 print(ssh_stdout.readlines())
 	 ssh.close()
-	
+	 print("done executing")	
+	 print( " executing cronAssignStatic ip command ")
 	 ssh = getSshInstanceFromParamiko("192.168.149.3" , "ece792" , "welcome1");
    	 command_to_run_staticIP_assign_script = 'python /tmp/cronAssignStaticIPs.py 2 '+dictOfLBWithTheirIp['LB502']	 
          ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_staticIP_assign_script)
   	 print(ssh_stdout.readlines())
 	 ssh.close()
+	 print("done executing")	
 	 return
 
 def resumeNCLB(nameOfLB):

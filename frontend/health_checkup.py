@@ -4,7 +4,7 @@ result_dict ={}
 dictOfLBWithTheirIp={}
 
 def readIPListOfLoadBalancersFromFile():
-        with open('health_check_ip_list.txt', 'r') as csv_file:
+        with open('load_balancers.txt', 'r') as csv_file:
                 reader = csv.reader(csv_file, delimiter=',')
                 for row in reader:
                         dictOfLBWithTheirIp[row[0]] = row[1]
