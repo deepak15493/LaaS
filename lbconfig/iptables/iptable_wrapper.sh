@@ -8,6 +8,6 @@ if [ ! -f ${CUSTOMER_VM_FILE} ];then
 	continue
 fi
 #	echo " Sleep done"
-./handle_iptables.sh APPLY	
+bash /tmp/handle_iptables.sh APPLY	
 
 #done
