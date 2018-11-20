@@ -42,73 +42,75 @@ def initialize():
     
     getInputsFromUser()
     ### setting up network
-    #createManagementNetwork()
-    #createCustomerNetwork()
+    createManagementNetwork()
+    createCustomerNetwork()
  
     ### creating tunnels for both Mangement and data flow   
-    #createTunnelsForManagementAndDataFlow()
+    createTunnelsForManagementAndDataFlow()
 
     ### assigning static ip to Front end vm
-    #assignStaticIpToManagementVM()
+    attachStaticInterfaceToTestingVM()
+    assignStaticIpToManagementVMdata()
+    assignStaticIpToManagementVMmanaging()
     ### create 4 load balancers in AWS
     # createAWSLoadBalancers()
     
     ### create 4 NC load balancers
-    #handleCreationOfNCLoadBalancers( )
+    handleCreationOfNCLoadBalancers( )
     
     ### get default ips of all load balancers
     collectIpsForLBs()
     
     ### attach load balancers to vxlan network
-    #attachLBsToVxlanNetwork()
+    attachLBsToVxlanNetwork()
     
-    #collectIpsForLBs() 
+    collectIpsForLBs() 
 
-    #print("Waiting for 40 seconds before assigning static ips to load balancers") 
-    #time.sleep(40)
+    print("Waiting for 40 seconds before assigning static ips to load balancers") 
+    time.sleep(40)
 
     ### assign static ips to just created load balancers vxlan interfaces
-    #assignStaticIPToLB() 
-    #assignStaticIPToLB() 
+    assignStaticIPToLB() 
+    assignStaticIPToLB() 
 
-    #print("creating servers ") 
+    print("creating servers ") 
     ### create Servers according to requirement
-    #createServersInrespectiveHypervisor()
+    createServersInrespectiveHypervisor()
 
-    #print("Waiting for 40 seconds before collecting default ips for servers")
-    #time.sleep(40)
+    print("Waiting for 40 seconds before collecting default ips for servers")
+    time.sleep(40)
     ### get default ips of all servers
-    #collectIpsForServers()
+    collectIpsForServers()
 
     ## attach server to data network
-    #attachServersToNetwork()
+    attachServersToNetwork()
 
-    #time.sleep(10)
-    #collectIpsForServers()
+    print("waiting for 40 seconds before collecting ips to server")
+    time.sleep(10)
+    collectIpsForServers()
 
-    #print("waiting for 40 seconds before assigning static ips to server")
     ### assign static ips to just created servers vxlan interfaces
-    #assignStaticIPToServer()
-    #assignStaticIPToServer()
+    assignStaticIPToServer()
+    assignStaticIPToServer()
 
     ### write LBs and their ips to file
     #writeLBsAndTheirIPsToFile()      not needed
     
     ####  writing server ips to file 
-    #writeServerIpsfile();   
+    writeServerIpsfile();   
    
-    #time.sleep(1)
+    time.sleep(1)
     ### push server name file to all lbs 	
-    #transferFileToLB()
+    transferFileToLB()
 
-    #attachDataNetworkToDNSServer()
+    attachDataNetworkToDNSServer()
     
     ### transfering files from hypervisor to LBs
-    #transferFilesToLBFromHyperviesor()
+    transferFilesToLBFromHyperviesor()
     
-    #time.sleep(2) 
-    #doLoadBalncingONLBVMs()
-
+    time.sleep(2) 
+    doLoadBalncingONLBVMs()
+    return
 
 def transferFilesToLBFromHyperviesor():
 	global ipOfHypervisor1, passwordOfHypervisor1, userNameOfHypervisor1
@@ -147,6 +149,7 @@ def transferFilesToLBFromHyperviesor():
 		
 
 def attachDataNetworkToDNSServer():
+	# turn on interface
 	global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
 	ssh= getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
 
@@ -169,6 +172,12 @@ def attachDataNetworkToDNSServer():
 		time.sleep(2) 
         ssh.close()
 
+	ssh = getSshInstanceFromParamiko( '192.168.125.207', 'root', 'tushar123')
+	command_to_poweron_interface_eth1 = 'sudo ip link set eth1 up'	
+	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_poweron_interface_eth1)
+	ssh_stdin.write( 'tushar123\n')
+	ssh_stdin.flush()
+	print(ssh_stdout.readlines())
 
 def doLoadBalncingONLBVMs():
 	global dictOfNCLBIps, lbPassword, lbUserName, listOfHypervisor1LBs, listOfHypervisor2LBs
@@ -241,19 +250,23 @@ def collectIpsForServers():
 
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
-    tries1 = 5
-    tries2 = 5
+    tries1 = 10 
+    tries2 = 10
     while( tries1 > 0):
         getIpsFromNCServers(uri1)
         if('SERVER110' in dictOfNCServerIps and 'SERVER111' in dictOfNCServerIps and 'SERVER110' in dictOfNCServerDefaultMac and 'SERVER111' in dictOfNCServerDefaultMac ):
                 break
+        print("Failed to collect Ips, Retrying in 15 seconds")
+        time.sleep(30)
         tries1 -= 1
 
     while( tries2 > 0):
         getIpsFromNCServers(uri2)
 	if('SERVER220' in dictOfNCServerIps and 'SERVER221' in dictOfNCServerIps and 'SERVER220' in dictOfNCServerDefaultMac and 'SERVER221' in dictOfNCServerDefaultMac ):                
 		break
-        tries2 -= 1
+        print("Failed to collect Ips, Retrying in 15 seconds")
+        time.sleep(30)
+	tries2 -= 1
     return
 
 
@@ -324,7 +337,6 @@ def getIpsFromNCServers(connectionURI):
     #    print("printing the dict of load balancer name to macs")
     #    for k, v in dictOfNCServerDefaultMac.iteritems():
     #            print k , v
-        time.sleep(15)
         conn.close()	
 
 def createServersInrespectiveHypervisor():
@@ -375,16 +387,16 @@ def collectIpsForLBs():
     	getIpsFromNCHypervisor(uri1)
     	if('LB401' in dictOfNCLBIps and 'LB402' in dictOfNCLBIps and 'LB401' in dictOfNCLBDefaultMac and 'LB402' in dictOfNCLBDefaultMac ):
 		break
-        print("Failed to collect IP's from all LBs. Retrying in 15 seconds")
-        time.sleep(15)
+        print("Failed to collect IP's from all LBs. Retrying in 30 seconds"+ str(tries1))
+        time.sleep(30)
 	tries1 -= 1
     
     while( tries2 > 0): 
    	getIpsFromNCHypervisor(uri2)
     	if('LB501' in dictOfNCLBIps and 'LB502' in dictOfNCLBIps and 'LB501' in dictOfNCLBDefaultMac and 'LB502' in dictOfNCLBDefaultMac ):
                 break
-        print("Failed to collect IP's from all LBs. Retrying in 15 seconds")
-        time.sleep(15)
+        print("Failed to collect IP's from all LBs. Retrying in 30 seconds"+str(tries2))
+        time.sleep(30)
         tries2 -= 1	
     print("Collected IP's success fully")
     return
@@ -474,11 +486,30 @@ def attachStaticInterfaceToManagementVM(ipaddr, username, password, networkName)
     ssh.close()
     return
 
-def assignStaticIpToManagementVM():
-    print "waiting to get interface up for current front end vm"
-    time.sleep(10)
-    os.system('ip addr add 192.168.111.70/24 dev eth1')
+def assignStaticIpToManagementVMmanaging():
+    #print "waiting to get interface up for current front end vm"
+    #time.sleep(10)
+    #tries = 3
+    #os.system('sudo ip addr add 192.168.110.70/24 dev eth1')
+    #time.sleep(1)
+    #os.system('sudo ip addr flush dev eth1')
+    #time.sleep(1)
+    #os.system('sudo ip link set dev eth1 up')
+    os.system('cp ifcfg-eth1 /etc/sysconfig/network-scripts/.')
+    os.system('service network restart') 
+    os.system('sudo ip link set dev eth1 up')
 
+def assignStaticIpToManagementVMdata():
+    print "waiting to get interface up for current front end vm"
+    #time.sleep(10)
+    #os.system('sudo ip addr add 192.168.111.70/24 dev eth2')
+    #time.sleep(1)
+    #os.system('sudo ip addr flush dev eth2')
+    #time.sleep(1)
+    #os.system('sudo ip link set dev eth2 up')
+    os.system('cp ifcfg-eth2 /etc/sysconfig/network-scripts/.')
+    os.system('service network restart')
+    os.system('sudo ip link set dev eth2 up')
 
 def createTunnelsForManagementAndDataFlow():
     global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
@@ -492,6 +523,13 @@ def createTunnelsForManagementAndDataFlow():
     createTunnelInHypervisor( ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1,'vxlanbr201', 'vxlan201', '53',ipOfHypervisor2)
     createTunnelInHypervisor( ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, 'vxlanbr201', 'vxlan201', '53', ipOfHypervisor1)
 
+
+def attachStaticInterfaceToTestingVM():
+    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+    print("waating 10 sec before attaching")
+    time.sleep(10)
+    attachStaticInterfaceToManagementVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, 'vxlan200')
     attachStaticInterfaceToManagementVM(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, 'vxlan201')
 
 def getIpsFromNCHypervisor(connectionURI):

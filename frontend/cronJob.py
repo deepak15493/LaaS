@@ -38,7 +38,7 @@ def assignLBAccordingToTime():
 	currentHour = dt.datetime.now().hour
 	updatedDictOfLB = {}
 	print("original dict ", dictOfLBWithTheirIp)
-	if(currentHour == 10):
+	if(currentHour == 3):
 		print("trying to suspend lbs")
 		for i in range(2,4):
 			key = listOfLB[i]
@@ -48,7 +48,7 @@ def assignLBAccordingToTime():
 			key = listOfLB[j]
 			updatedDictOfLB[key] = dictOfLBWithTheirIp[key]
 				
-	elif( currentHour == 20):
+	elif( currentHour == 23):
 		for i in range(2,4):   
                         key = listOfLB[i]
                         if(key in dictOfLBWithTheirIp): 
