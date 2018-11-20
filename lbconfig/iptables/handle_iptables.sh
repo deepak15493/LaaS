@@ -27,7 +27,7 @@ apply_iptable(){
     # IPTABLE rules
     for customer_ip in ${customer_vms}
     do
-        iptables -t nat -I PREROUTING -p tcp -d ${customer_ip} --dport 80 -m state --state NEW -m statistic --mode nth --every ${customer_count} --packet ${customer_itr} -j DNAT --to-destination ${customer_ip}
+        iptables -t nat -I PREROUTING -p tcp -d ${LBIP} --dport 80 -m state --state NEW -m statistic --mode nth --every ${customer_count} --packet ${customer_itr} -j DNAT --to-destination ${customer_ip}
         iptables -t nat -I PREROUTING -p icmp -d ${LBIP} -m statistic --mode nth --every ${customer_count} --packet ${customer_itr} -j DNAT --to-destination ${customer_ip}
 	customer_itr=$(expr ${customer_itr} + 1 )
     done
