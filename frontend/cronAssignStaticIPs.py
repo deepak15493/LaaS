@@ -4,8 +4,8 @@ import sys
 
 def assignStaticIPOnHypervisor1(LBIP):
 	ssh = getSshInstanceFromParamiko(LBIP , "root" , "tushar123");
-	command_to_assign_static_ip_eth0 = 'ip addr add 192.168.99.36/24 dev eth0'
-	command_to_assign_static_ip_eth1 = 'ip addr add 192.168.98.26/24 dev eth1'
+	command_to_assign_static_ip_eth0 = 'ip addr add 192.168.110.15/24 dev eth0'
+	command_to_assign_static_ip_eth1 = 'ip addr add 192.168.111.15/24 dev eth1'
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
 	print(ssh_stdout.readlines())
 	print(ssh_stderr.readlines())
@@ -16,8 +16,8 @@ def assignStaticIPOnHypervisor1(LBIP):
 
 def assignStaticIPOnHypervisor2(LBIP):
 	ssh = getSshInstanceFromParamiko(LBIP , "root" , "tushar123");
-	command_to_assign_static_ip_eth0 = 'ip addr add 192.168.99.23/24 dev eth0'
-	command_to_assign_static_ip_eth1 = 'ip addr add 192.168.98.24/24 dev eth1'
+	command_to_assign_static_ip_eth0 = 'ip addr add 192.168.110.35/24 dev eth0'
+	command_to_assign_static_ip_eth1 = 'ip addr add 192.168.111.35/24 dev eth1'
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_assign_static_ip_eth0)
 	print(ssh_stdout.readlines())
 	print(ssh_stderr.readlines())
