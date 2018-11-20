@@ -71,7 +71,6 @@ def initialize():
 
     ### assign static ips to just created load balancers vxlan interfaces
     assignStaticIPToLB() 
-    assignStaticIPToLB() 
 
     print("creating servers ") 
     ### create Servers according to requirement
@@ -90,7 +89,6 @@ def initialize():
     collectIpsForServers()
 
     ### assign static ips to just created servers vxlan interfaces
-    assignStaticIPToServer()
     assignStaticIPToServer()
 
     ### write LBs and their ips to file
