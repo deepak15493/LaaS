@@ -1,16 +1,16 @@
 destroy_lbs()
 {
     echo "Destroying all lbs"
-    virsh destroy S21
-    virsh destroy S22
-    virsh destroy T21
-    virsh destroy T22
+    virsh destroy S11
+    virsh destroy S12
+    virsh destroy T11
+    virsh destroy T12
 
     echo "Undefining all lbs"
-    virsh undefine S21  --remove-all-storage
-    virsh undefine S22  --remove-all-storage
-    virsh undefine T21  --remove-all-storage
-    virsh undefine T22  --remove-all-storage
+    virsh undefine S11  --remove-all-storage
+    virsh undefine S12  --remove-all-storage
+    virsh undefine T11  --remove-all-storage
+    virsh undefine T12  --remove-all-storage
 }
 
 destroy_networks()
@@ -34,16 +34,16 @@ destroy_networks()
 
 destroy_name_spaces()
 {
-    sudo ip netns del NSLB22
-    sudo ip netns del EWLB22
+    sudo ip netns del NSLB11
+    sudo ip netns del EWLB11
 }
 
 destroy_veth_pairs()
 {
-    sudo ip link del databr22veth0 type veth peer name databr22veth1
-    sudo ip link del nslb22veth0 type veth peer name nslb22veth1
-    sudo ip link del appbr21veth0 type veth peer name appbr21veth1
-    sudo ip link del appbr23veth0 type veth peer name appbr23veth1
+    sudo ip link del databr12veth0 type veth peer name databr12veth1
+    sudo ip link del nslb11veth0 type veth peer name nslb11veth1
+    sudo ip link del appbr11veth0 type veth peer name appbr11veth1
+    sudo ip link del appbr13veth0 type veth peer name appbr13veth1
 }
 
 destroy_lbs
