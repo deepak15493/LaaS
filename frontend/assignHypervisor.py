@@ -1,4 +1,6 @@
 import paramiko
+import os
+import sys
 
 
 
@@ -17,7 +19,7 @@ def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
 
 
 
-if __init__=="__main__":
+if __name__ == "__main__":
 	serverName = (sys.argv[1]).strip()
 	ipAddressOfServer = (sys.argv[2]).strip()
 
@@ -34,3 +36,4 @@ if __init__=="__main__":
 	ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute)
         print(ssh_stdout.readlines())
 	ssh.close()
+

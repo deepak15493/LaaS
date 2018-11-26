@@ -34,32 +34,36 @@ userNameOfHypervisor2 = ''
 passwordOfHypervisor2 = ''
 
 def initialize():
-    #initialize lb credentials
+	#initialize lb credentials
 	global  lbUserName, lbPassword, mapOfHypervisorToServer
-    global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
-    global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
-	
-    lbUserName = 'root'
+	global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
+	global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
+	global listOfHypervisor1Servers, listOfHypervisor2Servers
+	lbUserName = 'root'
 	lbPassword = 'tushar123'
-    listOfHypervisor1Servers = ["S11", "S12", "T11", "T12"]
-    listOfHypervisor2Servers = ["S21", "S22", "T21", "T22"]
-	
+	listOfHypervisor1Servers = ["S11", "S12", "T11", "T12"]
+	listOfHypervisor2Servers = ["S21", "S22", "T21", "T22"]
+
 	getInputsFromUser()
-	
+
 	# SCP hypervisor1.sh script to hypervisor 1 & hypervisor2.sh to hypervisor2
-	cpShellScriptToHypervisors()
-	
+	#cpShellScriptToHypervisors()
+
 	# Run hypervisor1.sh script in hypervisor 1 & hypervisor2.sh in hypervisor2
-    runShellScriptsInHypervisors()
+	#runShellScriptsInHypervisors()
 
 	# Collect IP's for servers
-	collectIpsForServers()
-
+	#collectIpsForServers()
+	print(dictOfFrontEndDefaultIp)
+	print(dictOfBackEndDefaultIp)
+	print(dictOfFrontEndDefaultMac)
+	print(dictOfBackEndDefaultMac)
 	# Detach and Attach interfaces for front-end servers
-	attachServersToRespectiveNetworks()
+	#attachServersToRespectiveNetworks()
 
+	collectIpsForServers()
 	# assign static ip s
-    assignStaticIpsToServers()
+	assignStaticIpsToServers()
 	return
 
 def assignStaticIpsToServers():
@@ -68,6 +72,9 @@ def assignStaticIpsToServers():
     global dictOfFrontEndDefaultIp, dictOfBackEndDefaultIp
     dictOfServers = dictOfBackEndDefaultIp.copy()
     dictOfServers.update(dictOfFrontEndDefaultIp)
+
+    print("in assign Static Ips to Servers ")
+    print(dictOfServers)
 
     listOfServersHypervisor1 = ["S11","S12","T11","T12"] 
     listOfServersHypervisor2 = ["S21","S22","T21","T22"]
@@ -93,16 +100,16 @@ def assignStaticIpsToServers():
         print(ssh_stdout.readlines())
     ssh.close()
 
-    ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
-    command_to_change_permission2 = 'chmod 777 /home/ece792/assignHypervisor.py'
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission2)
-    print(ssh_stdout.readlines())
-    for name in listOfServersHypervisor2:
-        ip = dictOfServers[name]
-        command_to_execute = 'python /home/ece792/assignHypervisor.py ' + name + ' ' + ip
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute)
-        print(ssh_stdout.readlines())
-    ssh.close()
+   # ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
+   # command_to_change_permission2 = 'chmod 777 /home/ece792/assignHypervisor.py'
+   # ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_change_permission2)
+   # print(ssh_stdout.readlines())
+   # for name in listOfServersHypervisor2:
+   #     ip = dictOfServers[name]
+   #     command_to_execute = 'python /home/ece792/assignHypervisor.py ' + name + ' ' + ip
+   #     ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_execute)
+   #     print(ssh_stdout.readlines())
+   # ssh.close()
 
 
 def attachServersToRespectiveNetworks():
@@ -111,23 +118,27 @@ def attachServersToRespectiveNetworks():
     global listOfHypervisor1Servers, listOfHypervisor2Servers
     listOfNetworks = ["network11", "network13", "network12"]
     ### Detach default network
-    print("Detaching \"default\" interface for LBs")
+    print("Detaching \"default\" interface for LBs")  
+    print(listOfHypervisor1Servers)
     detachHypervisorServers(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers, 'default')
-    detachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers, 'default')
+    #detachHypervisorServers(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers, 'default')
 
     ### attach data network of vxlan 
     for i in range (0,2):
-        attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers[i], listOfNetworks[i])
-        attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[i], listOfNetworks[i])
+	print(i)
+        attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers[0], listOfNetworks[i])
+        attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers[1], listOfNetworks[i])
+        #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[0], listOfNetworks[i])
+        #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[1], listOfNetworks[i])
 
     for i in range (2,4):
         attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers[i], listOfNetworks[2])
-        attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[i], listOfNetworks[2])
+        #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[i], listOfNetworks[2])
 
     ## attach default network 
     for i in range (0,4):
         attachHypervisorLBs(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1, listOfHypervisor1Servers[i], 'default')
-        attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[i], 'default')
+        #attachHypervisorLBs(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2, listOfHypervisor2Servers[i], 'default')
 
     return
 
@@ -136,10 +147,13 @@ def detachHypervisorServers(ipaddr, username, password, listOfHyperviserServers,
     dictOfServerToMac = dictOfBackEndDefaultMac.copy()   # start with x's keys and values
     dictOfServerToMac.update(dictOfFrontEndDefaultMac) 
     # get Instance of ssh from paramiko
+    print("in detach hypervisor servers")
+    print(dictOfServerToMac, listOfHyperviserServers)
     ssh  = getSshInstanceFromParamiko(ipaddr, username, password)
 
     for nameOfServer in listOfHyperviserServers:
         command_to_attach_iface = 'virsh detach-interface --domain '+ nameOfServer + ' --type network --mac ' + dictOfServerToMac[nameOfServer] 
+	print(command_to_attach_iface)
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_attach_iface)
         print(ssh_stdout.read())
     time.sleep(1)
@@ -182,7 +196,7 @@ def getFrontEndDetails(connectionURI):
     conn.close()
 
 
-def getBackEndDetails():
+def getBackEndDetails(connectionURI):
     global dictOfBackEndDefaultIp, dictOfBackEndDefaultMac
     
     conn = libvirt.open(connectionURI)
@@ -208,7 +222,7 @@ def collectIpsForServers():
     global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
 
     print("Waiting for 40 sec before starting collection of IPs from LBs ")
-    time.sleep(40)
+    #time.sleep(40)
     uri1 = 'qemu+ssh://'+userNameOfHypervisor1+'@'+ ipOfHypervisor1 + ':22/system'
     uri2 = 'qemu+ssh://'+userNameOfHypervisor2+'@'+ ipOfHypervisor2 + ':22/system'
     tries1 = 5
@@ -223,16 +237,16 @@ def collectIpsForServers():
         time.sleep(30)
         tries1 -= 1
 
-    while( tries2 > 0):
-        getFrontEndDetails(uri2)
-        getBackEndDetails(uri2)
-        if('S21' in dictOfFrontEndDefaultIp and 'S22' in dictOfFrontEndDefaultIp and 'T21' in dictOfBackEndDefaultIp and 'T22' in dictOfBackEndDefaultIp and
-            'S21' in dictOfFrontEndDefaultMac and 'S22' in dictOfFrontEndDefaultMac and 'T21' in dictOfBackEndDefaultMac and 'T22' in dictOfBackEndDefaultMac ):
-                break
-        print("Failed to collect IP's from all LBs. Retrying in 30 seconds"+str(tries2))
-        time.sleep(30)
-        tries2 -= 1
-    print("Collected IP's success fully")
+#    while( tries2 > 0):
+#        getFrontEndDetails(uri2)
+#        getBackEndDetails(uri2)
+#        if('S21' in dictOfFrontEndDefaultIp and 'S22' in dictOfFrontEndDefaultIp and 'T21' in dictOfBackEndDefaultIp and 'T22' in dictOfBackEndDefaultIp and
+#            'S21' in dictOfFrontEndDefaultMac and 'S22' in dictOfFrontEndDefaultMac and 'T21' in dictOfBackEndDefaultMac and 'T22' in dictOfBackEndDefaultMac ):
+#                break
+#        print("Failed to collect IP's from all LBs. Retrying in 30 seconds"+str(tries2))
+#        time.sleep(30)
+#        tries2 -= 1
+#    print("Collected IP's success fully")
     return
 
 
@@ -302,7 +316,7 @@ def getInputsFromUser():
     hypervisor1Details = inputDetails.strip().split(" ")
     #hypervisor1Details = getHypervisorDetailsFromUser()
 
-    inputDetails1 = '192.168.149.3 ece792 welcome1'
+    inputDetails1 = '192.168.149.3 ece792 tushar123'
     hypervisor2Details = inputDetails1.strip().split(" ")
     #hypervisor2Details = getHypervisorDetailsFromUser()
 

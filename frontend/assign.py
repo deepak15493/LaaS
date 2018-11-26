@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 mappingOfServerNameToIp = {}
@@ -35,17 +36,14 @@ def initialize(listofInterfaces, nameOfServer):
 
 def writeFile(ip, interface):
     fileName = "ifcfg-" + interface
-    with open('/etc/sysconfig/network-scripts/'+fileName, 'a') as f:
-    	f.write("DEVICE="+interface)
-	f.write("BOOTPROTO=none")
-	f.write("ONBOOT=yes")
-	f.write("PREFIX=24")
-	f.write("IPADDR="+ip)      
+    with open('/etc/sysconfig/network-scripts/'+fileName, 'w') as f:
+    	f.write("DEVICE="+interface+"\nBOOTPROTO=none\nONBOOT=yes\nPREFIX=24\nIPADDR="+ip+"\n")
 		
 
-if __init__=="__main__":
+if __name__ == "__main__":
 	nameOfServer = (sys.argv[1]).strip()
 	listofInterfaces = os.listdir('/sys/class/net/')
 	listofInterfaces.sort()
 	initialize(listofInterfaces, nameOfServer)
+
 
