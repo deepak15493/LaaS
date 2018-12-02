@@ -69,9 +69,13 @@ create_veth_pair()
     sudo ip link add t2br12${TENANT_ID} type veth peer name br12t2${TENANT_ID}
     echo "done creating veth pairs for servers"
 
-
     echo "Creating Veth for TENANT - Hypervisor"
     sudo ip link add ten${TENANT_ID}veth0 type veth peer name ten${TENANT_ID}veth1
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        echo " Creating veth for remote gre DNAT"
+        sudo ip link add ten${TENANT_ID}greveth0 type veth peer name ten${TENANT_ID}greveth1
+	
+    fi
 
     echo "Done creating TENANT - Hypervisor veth"    
     echo "Turning interfaces up"
@@ -93,6 +97,9 @@ create_veth_pair()
     sudo ip link set dev br12t1${TENANT_ID} up
     sudo ip link set dev t2br12${TENANT_ID} up
     sudo ip link set dev br12t2${TENANT_ID} up
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip link set dev ten${TENANT_ID}greveth1 up
+    fi
     echo  "All interfaces are up"
 }
 
@@ -144,7 +151,9 @@ adding_veth_pairs_to_respective_interfaces()
     sudo ip link set ten${TENANT_ID}veth1 netns TEN${TENANT_ID}
     echo "Joining NSLB11 - TEN${TENANT_ID}"    
     sudo ip link set ${TENANT_ID}_nslb11veth0 netns TEN${TENANT_ID}
-	
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip link set ten${TENANT_ID}greveth0 netns TEN${TENANT_ID}
+    fi
 
     sudo ip link set s1br11${TENANT_ID} netns S11TEN${TENANT_ID}
     sudo brctl addif ${TENANT_ID}_br11 br11s1${TENANT_ID}
@@ -182,30 +191,60 @@ turing_on_vethpair_interfaces()
     sudo ip netns exec T12TEN${TENANT_ID} ip link set dev t2br12${TENANT_ID} up
     
     sudo ip netns exec TEN${TENANT_ID} ip link set dev ${TENANT_ID}_nslb11veth0 up
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec TEN${TENANT_ID} ip link set dev ten${TENANT_ID}greveth0 up
+    fi
     sudo ip netns exec TEN${TENANT_ID} ip link set dev ten${TENANT_ID}veth1 up
 }
 
 assign_static_public_ips_and_iptables(){
-    sudo ip netns exec TEN${TENANT_ID} ip addr add ${TENANT_PUBLIC_IP}/24 dev ${TENANT_ID}_nslb11veth0
-    sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add ${OTHER_END_TENANT_PUBLIC_IP}/24 dev ${TENANT_ID}_nslb11veth1
-    sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
+    sudo ip netns exec TEN${TENANT_ID} ip addr add 192.168.130.1/24 dev ${TENANT_ID}_nslb11veth0
+    sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.130.2/24 dev ${TENANT_ID}_nslb11veth1
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+
+        sudo ip netns exec TEN${TENANT_ID} ip addr add ${TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
+        sudo ip netns exec TEN${TENANT_ID} ip addr add ${TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth0
+        sudo ip addr add ${OTHER_END_TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth1
+	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
+    	# GRE Remote route
+	NETWORK_ID=`echo ${REMOTE_TENANT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
+	NETWORK_ID=${NETWORK_ID}".0"
+        sudo ip route add ${NETWORK_ID}/24 dev gretun1 
+    else
+        sudo ip netns exec TEN${TENANT_ID} ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
+	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.135.2
+	NETWORK_ID=`echo ${TENANT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
+	NETWORK_ID=${NETWORK_ID}".0"
+        sudo ip route add ${NETWORK_ID}/24 dev gretun1 
+    fi
 }
 
 assign_static_ips_to_servers()
 {
-    sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.80.51/24 dev s1br11${TENANT_ID}
-    sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.80.52/24 dev s2br11${TENANT_ID}
-    
-    sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.85.51/24 dev s1br13${TENANT_ID}
-    sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.85.52/24 dev s2br13${TENANT_ID}
-    
-    sudo ip netns exec T11TEN${TENANT_ID} ip addr add 192.168.90.51/24 dev t1br12${TENANT_ID}
-    sudo ip netns exec T12TEN${TENANT_ID} ip addr add 192.168.90.52/24 dev t2br12${TENANT_ID}
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+	sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.80.51/24 dev s1br11${TENANT_ID}
+	sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.80.52/24 dev s2br11${TENANT_ID}
+
+	sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.85.51/24 dev s1br13${TENANT_ID}
+	sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.85.52/24 dev s2br13${TENANT_ID}
+
+	sudo ip netns exec T11TEN${TENANT_ID} ip addr add 192.168.90.51/24 dev t1br12${TENANT_ID}
+	sudo ip netns exec T12TEN${TENANT_ID} ip addr add 192.168.90.52/24 dev t2br12${TENANT_ID}
+    else
+	sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.80.53/24 dev s1br11${TENANT_ID}
+	sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.80.54/24 dev s2br11${TENANT_ID}
+
+	sudo ip netns exec S11TEN${TENANT_ID} ip addr add 192.168.85.53/24 dev s1br13${TENANT_ID}
+	sudo ip netns exec S12TEN${TENANT_ID} ip addr add 192.168.85.54/24 dev s2br13${TENANT_ID}
+
+	sudo ip netns exec T11TEN${TENANT_ID} ip addr add 192.168.90.53/24 dev t1br12${TENANT_ID}
+	sudo ip netns exec T12TEN${TENANT_ID} ip addr add 192.168.90.54/24 dev t2br12${TENANT_ID}
+    fi
 }
 
 assign_static_ips_to_lbs()
 {
-    if [ "${HYPERVISOR_FLAG}" == "1" ];then
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
 	echo "Assigning static ips to namespaces"
 	#sudo ip addr add 192.168.130.1/24 dev ${TENANT_ID}_nslb11veth0
 	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.130.2/24 dev ${TENANT_ID}_nslb11veth1
@@ -218,7 +257,7 @@ assign_static_ips_to_lbs()
     else
 	echo "Assigning static ips to namespaces"
 	#sudo ip addr add 192.168.130.1/24 dev ${TENANT_ID}_nslb11veth0
-	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.140.2/24 dev ${TENANT_ID}_nslb11veth1
+	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.135.2/24 dev ${TENANT_ID}_nslb11veth1
 
 	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.80.3/24 dev ${TENANT_ID}_appbr11veth1
 
@@ -228,21 +267,30 @@ assign_static_ips_to_lbs()
 	
     fi
 }
-
+# VXLAN ID is input ... ensure that this number is unique per hypervisor
+# Each iteration uses 2 ID's. e.g 50 -> 50 and 51 is under use
 creating_vxlan()
 {
     echo "Creating vxlans"
     VXLAN_FRONTEND_ID=${VXLAN_ID}
     VXLAN_BACKEND_ID=$(expr ${VXLAN_ID} + 1)
-    sudo ip link add name ${TENANT_ID}_vxlanfrontend type vxlan id ${VXLAN_FRONTEND_ID} dev ens4 remote 192.168.149.3 dstport 4789
+
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+	sudo ip link add name ${TENANT_ID}_vxlanfrontend type vxlan id ${VXLAN_FRONTEND_ID} dev ens4 remote 192.168.149.3 dstport 4789
+
+	sudo ip link add name ${TENANT_ID}_vxlanbackend type vxlan id ${VXLAN_BACKEND_ID} dev ens4 remote 192.168.149.3 dstport 4789
+    else
+	sudo ip link add name ${TENANT_ID}_vxlanfrontend type vxlan id ${VXLAN_FRONTEND_ID} dev ens4 remote 192.168.149.6 dstport 4789
+
+	sudo ip link add name ${TENANT_ID}_vxlanbackend type vxlan id ${VXLAN_BACKEND_ID} dev ens4 remote 192.168.149.6 dstport 4789
+    fi
     sudo ip link set dev ${TENANT_ID}_vxlanfrontend up
     sudo brctl addif ${TENANT_ID}_br11 ${TENANT_ID}_vxlanfrontend
-
-    sudo ip link add name ${TENANT_ID}_vxlanbackend type vxlan id ${VXLAN_BACKEND_ID} dev ens4 remote 192.168.149.3 dstport 4789
     sudo ip link set dev ${TENANT_ID}_vxlanbackend up
     sudo brctl addif ${TENANT_ID}_br12 ${TENANT_ID}_vxlanbackend
     echo "done Creating vxlans"
 }
+
 
 
 create_gre()
@@ -256,12 +304,19 @@ create_gre()
 
 adding_masquerade_rules_to_lbs11()
 {
-    sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.130.1
-
-    sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
-    sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
-    sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
-    sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.130.1
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
+    else
+        sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.135.1
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
+    fi
 
     sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I POSTROUTING  ! -s 192.168.80.0/24 -j MASQUERADE
     sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I POSTROUTING  -s 192.168.80.0/24  -j MASQUERADE
@@ -269,11 +324,17 @@ adding_masquerade_rules_to_lbs11()
 
 adding_masquerade_rules_to_eslb11()
 {
-    sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
-    sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
-    sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
-    sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
-
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
+    else
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
+    fi
     sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I POSTROUTING  -s 192.168.85.0/24 -j MASQUERADE
 }
 
@@ -306,14 +367,25 @@ if [ -z "$5" ];then
 	echo "VXLAN_ID parameter is missing"
 	exit 1
 fi
+if [ -z "$6" ];then
+	echo "TENANT_DNAT_PUBLIC_IP parameter is missing"
+	exit 1
+fi
+if [ -z "$7" ];then
+	echo "OTHER_END_TENANT_DNAT_PUBLIC_IP parameter is missing"
+	exit 1
+fi
 HYPERVISOR_FLAG=$1
 TENANT_ID=$2
 TENANT_PUBLIC_IP=$3
 OTHER_END_TENANT_PUBLIC_IP=$4
 VXLAN_ID=$5
+TENANT_DNAT_PUBLIC_IP=$6
+OTHER_END_TENANT_DNAT_PUBLIC_IP=$7
+REMOTE_TENANT_PUBLIC_IP=$8
+OTHER_END_REMOTE_TENANT_PUBLIC_IP=$9
 create_client_servers_as_namespace
 #create_client_servers
-#create_gre
 create_namespace
 create_veth_pair
 create_networks
