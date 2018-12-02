@@ -1,31 +1,12 @@
 import  os
 import paramiko
-import csv
-import libvirt
 import time
 from collections import defaultdict
 
-#listOfAWSServers = []
-listOfNCServersIP = []
-#listOfLB = []
-#load balancer common credentials
-lbUserName = ''
-lbPassword = ''
-listOfHypervisor1LBs = []
-listOfHypervisor2LBs = []
-mapOfHypervisorToServer = {}
-
-dictOfNCLBIps= {}
-dictOfNCLBDefaultMac= {}
-
-
-dictOfNCServerIps = {}
-dictOfNCServerDefaultMac = {}
 
 ipOfHypervisor1 = ''
 userNameOfHypervisor1 = ''
 passwordOfHypervisor1 = ''
-
 
 ipOfHypervisor2 = ''
 userNameOfHypervisor2 = ''
@@ -34,13 +15,8 @@ passwordOfHypervisor2 = ''
 
 def initialize():
 	print ("Initializing")
-        #initialize lb credentials
-        global lbUserName, lbPassword
 	global ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1
         global ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2
-
-        lbUserName = 'root'
-        lbPassword = 'tushar123'
 
 	inputDetails = '192.168.149.6 ece792 EcE792net!'
         hypervisor1Details = inputDetails.strip().split(" ")
