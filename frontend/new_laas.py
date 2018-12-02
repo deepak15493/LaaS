@@ -106,13 +106,6 @@ def getSshInstanceFromParamiko(ipaddress, username, password):
     ssh.connect(ipaddress, port=22, username=username, password=password)
     return ssh
 
-def cpFileToVM(ipaddr, username, password, srcPath, destPath, filename):
-        command = 'sshpass -p '+ password +' scp -c aes128-ctr -o StrictHostKeyChecking=no ' + srcPath + '/' + filename + ' ' + username  +'@'+   ipaddr +':'+ destPath
-        print (command)
-        os.system(command)
-
-
 
 if __name__ == "__main__":
-   	initialize()
-
+	initialize()
