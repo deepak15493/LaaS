@@ -206,7 +206,7 @@ assign_static_public_ips_and_iptables(){
         sudo ip addr add ${OTHER_END_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth0
         sudo ip netns exec TEN${TENANT_ID} ip addr add ${TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth0
         sudo ip addr add ${OTHER_END_TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth1
-	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
+	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
     	# GRE Remote route
 	NETWORK_ID=`echo ${REMOTE_TENANT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
 	NETWORK_ID=${NETWORK_ID}".0"
@@ -214,8 +214,8 @@ assign_static_public_ips_and_iptables(){
     else
         sudo ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth0
         sudo ip netns exec TEN${TENANT_ID} ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
-	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.135.2
-	NETWORK_ID=`echo ${TENANT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
+	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.135.2
+	NETWORK_ID=`echo ${TENANT_DNAT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
 	NETWORK_ID=${NETWORK_ID}".0"
         sudo ip route add ${NETWORK_ID}/24 dev gretun1 
     fi
