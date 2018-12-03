@@ -19,8 +19,16 @@ destroy_lbs()
 }
 
 destroy_docker() {
-    sudo docker stop TEN${TENANT_ID}
-    sudo docker rm TEN${TENANT_ID}
+    #sudo docker stop TEN${TENANT_ID}
+    #sudo docker rm TEN${TENANT_ID}
+
+
+    sudo docker stop ${TENANT_ID}_NSLB11
+    sudo docker rm ${TENANT_ID}_NSLB11
+   
+    sudo docker stop ${TENANT_ID}_EWLB11
+    sudo docker rm ${TENANT_ID}_EWLB11
+
 		
     sudo docker stop S11TEN${TENANT_ID}
     sudo docker rm S11TEN${TENANT_ID}
@@ -40,7 +48,7 @@ destroy_docker() {
     sudo ip netns del T11TEN${TENANT_ID}
     sudo ip netns del T12TEN${TENANT_ID}
 
-    sudo rm -r /var/run/netns/TEN${TENANT_ID}
+    #sudo rm -r /var/run/netns/TEN${TENANT_ID}
     sudo rm -r /var/run/netns/S11TEN${TENANT_ID}
     sudo rm -r /var/run/netns/S12TEN${TENANT_ID}
     sudo rm -r /var/run/netns/T11TEN${TENANT_ID}
@@ -109,7 +117,7 @@ fi
 
 TENANT_ID=$1
 destroy_docker
-#destroy_lbs
+destroy_lbs
 destroy_networks
 destroy_veth_pairs
 destroy_name_spaces
