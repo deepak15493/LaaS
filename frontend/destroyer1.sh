@@ -110,6 +110,19 @@ destroy_vxlan(){
 	
 }
 
+destroy_management_network()
+{
+	sudo brctl delbr ${TENANT_ID}_br14 
+	sudo ip link del ${TENANT_ID}_NSLB11_br14
+	sudo ip link del ${TENANT_ID}_EWLB11_br14
+	sudo ip link del ${TENANT_ID}_br14_NSLB11
+	sudo ip link del ${TENANT_ID}_br14_EWLB11
+
+	sudo ip link del ${TENANT_ID}_vxlan_mngment
+
+}
+
+
 if [ -z "$1" ];then
 	echo "Tenant ID parameter is missing"
 	exit 1
@@ -129,4 +142,5 @@ else
 	sudo ip route del 192.168.61.0/24 dev gretun1
 	sudo ip route del 192.168.62.0/24 dev gretun1
 fi
+destroy_management_network
 #sudo ip link del gretun1
