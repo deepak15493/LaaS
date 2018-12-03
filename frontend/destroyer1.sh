@@ -18,6 +18,30 @@ destroy_lbs()
     sudo ip netns del T12TEN${TENANT_ID}
 }
 
+destroy_docker() {
+
+    sudo rm -r /var/run/netns/TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/S11TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/S12TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/T11TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/T12TEN${TENANT_ID}
+
+    sudo docker stop TEN${TENANT_ID}
+    sudo docker rm TEN${TENANT_ID}
+		
+    sudo docker stop S11TEN${TENANT_ID}
+    sudo docker rm S11TEN${TENANT_ID}
+
+    sudo docker stop S12TEN${TENANT_ID}
+    sudo docker rm S12TEN${TENANT_ID}
+
+    sudo docker stop T11TEN${TENANT_ID}
+    sudo docker rm T11TEN${TENANT_ID}
+
+    sudo docker stop T12TEN${TENANT_ID}
+    sudo docker rm T12TEN${TENANT_ID}
+}
+
 destroy_networks()
 {
    virsh net-destroy network11 
@@ -79,16 +103,17 @@ if [ -z "$1" ];then
 fi
 
 TENANT_ID=$1
+#destroy_docker
 destroy_lbs
 destroy_networks
 destroy_veth_pairs
 destroy_name_spaces
 destroy_vxlan
 if [ "${TENANT_ID}" = 1 ];then
-	ip route del 192.168.41.0/24 dev gretun1
-	ip route del 192.168.42.0/24 dev gretun1
+	sudo ip route del 192.168.41.0/24 dev gretun1
+	sudo ip route del 192.168.42.0/24 dev gretun1
 else
-	ip route del 192.168.61.0/24 dev gretun1
-	ip route del 192.168.62.0/24 dev gretun1
+	sudo ip route del 192.168.61.0/24 dev gretun1
+	sudo ip route del 192.168.62.0/24 dev gretun1
 fi
 #sudo ip link del gretun1
