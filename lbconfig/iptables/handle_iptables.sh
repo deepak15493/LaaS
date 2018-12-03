@@ -61,10 +61,11 @@ add_new_veth_pairs(){
 
 }
 
-cron_apply_iptable(){
+cron_expand_iptables(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
 
-    if [ "${NEW_NAMESPACE}" = "" ];then
+    sudo ip netns exec TEN${TENANT_ID} iptables -F PREROUTING -t nat
+    if [ "${NEW_NAMESPACE}" != "" ];then
 		# Applying rules for increasing to 2 NSLB's
 		
 		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m statistic --mode nth --every 3 --packet 0 -j DNAT --to-destination 192.168.130.2
@@ -81,7 +82,23 @@ cron_apply_iptable(){
     fi
 }
 
+cron_contract_iptables(){
+    NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
 
+    sudo ip netns exec TEN${TENANT_ID} iptables -F PREROUTING -t nat
+    if [ "${NEW_NAMESPACE}" != "" ];then
+		# Applying rules for increasing to 2 NSLB's
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination 192.168.131.2
+		
+    else
+		# Applying rules for 1 decreasing to 1 NSLB
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
+
+    fi
+}
 apply_iptable_new_northsouth_namespace(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-" | cut -f 1 -d ' ' | xargs`
 
@@ -154,7 +171,6 @@ TENANT_ID=$1
 ACTION=$2
 TENANT_PUBLIC_IP=$3
 REMOTE_TENANT_PUBLIC_IP=$4
-
 TENANT_NAMESPACE=TEN${TENANT_ID}
 
 # MAIN SCRIPT 
@@ -182,9 +198,13 @@ elif [ "$2" = "2" ];then
     apply_iptable_tenant_namespace 
 else
     ## Cron is calling to just change the IP tables
-
+    EXPAND_RULES=$5
     ## Donot create anything but delete the NAT over GRE Tunnel
-    cron_apply_iptable 
+    if [ "${EXPAND_RULES}" = "1" ];then 
+        cron_expand_iptables 
+    else
+        cron_contract_iptables 
+    fi
 fi
 
 exit 0;
