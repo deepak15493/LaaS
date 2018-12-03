@@ -206,13 +206,22 @@ assign_static_public_ips_and_iptables(){
         sudo ip addr add ${OTHER_END_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth0
         sudo ip netns exec TEN${TENANT_ID} ip addr add ${TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth0
         sudo ip addr add ${OTHER_END_TENANT_DNAT_PUBLIC_IP}/24 dev ten${TENANT_ID}greveth1
-	sudo ip netns exec TEN${TENANT_ID} ip route add default via ${OTHER_END_TENANT_DNAT_PUBLIC_IP} 
-	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
-    	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I POSTROUTING  -d ${REMOTE_TENANT_PUBLIC_IP} -j SNAT --to ${TENANT_DNAT_PUBLIC_IP}
         # GRE Remote route
 	NETWORK_ID=`echo ${REMOTE_TENANT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
 	NETWORK_ID=${NETWORK_ID}".0"
-        sudo ip route add ${NETWORK_ID}/24 dev gretun1 
+	sudo ip netns exec TEN${TENANT_ID} ip route add ${NETWORK_ID} via ${OTHER_END_TENANT_DNAT_PUBLIC_IP} dev ten${TENANT_ID}greveth0
+        # route add 192.168.62.0/24 via 192.168.61.3 dev ten2greveth0
+	#+ TENANT_PUBLIC_IP=192.168.60.2
+	# OTHER_END_TENANT_PUBLIC_IP=192.168.60.3
+	# VXLAN_ID=60
+	# TENANT_DNAT_PUBLIC_IP=192.168.61.2
+	# OTHER_END_TENANT_DNAT_PUBLIC_IP=192.168.61.3
+	# REMOTE_TENANT_PUBLIC_IP=192.168.62.2
+	# OTHER_END_REMOTE_TENANT_PUBLIC_IP=192.168.62.3
+	#
+	#sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.130.2
+    	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I POSTROUTING  -d ${REMOTE_TENANT_PUBLIC_IP} -j SNAT --to ${TENANT_DNAT_PUBLIC_IP}
+        sudo ip route add ${NETWORK_ID}/24 via ${TENANT_DNAT_PUBLIC_IP} dev gretun1 
     else
 	sudo ip netns exec TEN${TENANT_ID} ifconfig lo up
         sudo ip netns exec TEN${TENANT_ID} ip addr add 192.168.135.1/24 dev ${TENANT_ID}_nslb11veth0
@@ -221,7 +230,7 @@ assign_static_public_ips_and_iptables(){
         sudo ip netns exec TEN${TENANT_ID} ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
 	NETWORK_ID=`echo ${TENANT_DNAT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
 	NETWORK_ID=${NETWORK_ID}".0"
-	sudo ip netns exec TEN${TENANT_ID} ip route add default via ${OTHER_END_REMOTE_TENANT_PUBLIC_IP} 
+	sudo ip netns exec TEN${TENANT_ID} ip route add ${NETWORK_ID} via ${OTHER_END_REMOTE_TENANT_PUBLIC_IP} dev ten${TENANT_ID}veth1
         sudo ip route add ${NETWORK_ID}/24 dev gretun1 
     fi
 }
