@@ -217,8 +217,8 @@ assign_static_public_ips_and_iptables(){
 	sudo ip netns exec TEN${TENANT_ID} ifconfig lo up
         sudo ip netns exec TEN${TENANT_ID} ip addr add 192.168.135.1/24 dev ${TENANT_ID}_nslb11veth0
         sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.135.2/24 dev ${TENANT_ID}_nslb11veth1
-        sudo ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth0
-        sudo ip netns exec TEN${TENANT_ID} ip addr add ${OTHER_END_REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
+        sudo ip addr add ${OTHER_END_REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth0
+        sudo ip netns exec TEN${TENANT_ID} ip addr add ${REMOTE_TENANT_PUBLIC_IP}/24 dev ten${TENANT_ID}veth1
 	sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${REMOTE_TENANT_PUBLIC_IP} -j DNAT --to-destination 192.168.135.2
 	NETWORK_ID=`echo ${TENANT_DNAT_PUBLIC_IP} | cut -f 1-3 -d '.' | xargs`
 	NETWORK_ID=${NETWORK_ID}".0"
