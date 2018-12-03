@@ -4,24 +4,24 @@
 create_client_servers()
 {
     sudo docker run --privileged -itd --name S11TEN${TENANT_ID} ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' S11TEN'${TENANT_ID}' | xargs `
-    sudo ln -s /proc/S11TEN${TENANT_ID}/ns/net /var/run/netns/S11TEN${TENANT_ID}
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' S11TEN${TENANT_ID} | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/S11TEN${TENANT_ID}
     
     #echo "starting server S12TEN${TENANT_ID}"
     sudo docker run --privileged -itd --name S12TEN${TENANT_ID} ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' S12TEN'${TENANT_ID}' | xargs `
-    sudo ln -s /proc/S12TEN${TENANT_ID}/ns/net /var/run/netns/S12TEN${TENANT_ID}
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' S12TEN${TENANT_ID} | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/S12TEN${TENANT_ID}
 
 
     #echo "starting server T11TEN${TENANT_ID}"
     sudo docker run --privileged -itd --name T11TEN${TENANT_ID} ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' T11TEN'${TENANT_ID}' | xargs `
-    sudo ln -s /proc/T11TEN${TENANT_ID}/ns/net /var/run/netns/T11TEN${TENANT_ID}
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' T11TEN${TENANT_ID} | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/T11TEN${TENANT_ID}
 
     #echo "starting server T12TEN${TENANT_ID}"
     sudo docker run --privileged -itd --name T12TEN${TENANT_ID} ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' T12TEN'${TENANT_ID}' | xargs `
-    sudo ln -s /proc/T12TEN${TENANT_ID}/ns/net /var/run/netns/T12TEN${TENANT_ID}
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' T12TEN${TENANT_ID} | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/T12TEN${TENANT_ID}
 }
 #create_client_servers()
 #{
@@ -57,12 +57,12 @@ create_namespace()
 
     #echo "starting load balncer  ${TENANT_ID}_NSLB11"
     sudo docker run --privileged -itd --name ${TENANT_ID}_NSLB11 ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' '${TENANT_ID}'_NSLB11 | xargs `
-    sudo ln -s /proc/${TENANT_ID}_NSLB11/ns/net /var/run/netns/${TENANT_ID}_NSLB11
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' ${TENANT_ID}_NSLB11 | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/${TENANT_ID}_NSLB11
 
     sudo docker run --privileged -itd --name ${TENANT_ID}_EWLB11 ubuntu:final 
-    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' '${TENANT_ID}'_EWLB11 | xargs `
-    sudo ln -s /proc/${TENANT_ID}_EWLB11/ns/net /var/run/netns/${TENANT_ID}_EWLB11
+    DOCKER_CONTAINER_PID=`sudo docker inspect -f '{{.State.Pid}}' ${TENANT_ID}_EWLB11 | xargs `
+    sudo ln -s /proc/${DOCKER_CONTAINER_PID}/ns/net /var/run/netns/${TENANT_ID}_EWLB11
 
 }
 
@@ -433,8 +433,8 @@ TENANT_DNAT_PUBLIC_IP=$6
 OTHER_END_TENANT_DNAT_PUBLIC_IP=$7
 REMOTE_TENANT_PUBLIC_IP=$8
 OTHER_END_REMOTE_TENANT_PUBLIC_IP=$9
-create_client_servers_as_namespace
-#create_client_servers
+#create_client_servers_as_namespace
+create_client_servers
 create_namespace
 create_veth_pair
 create_networks
