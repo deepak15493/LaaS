@@ -388,9 +388,63 @@ adding_masquerade_rules_to_eslb11()
 
 turn_collectd_service_on() 
 {
-	sudo ip netns exec ${TENANT_ID}_NSLB11 service collectd start
-	sudo ip netns exec ${TENANT_ID}_EWLB11 service collectd start
+	sudo docker cp /tmp/${TENANT_ID}/collectd.conf  ${TENANT_ID}_NSLB11:/etc/collectd/
+	sudo docker exec -it ${TENANT_ID}_NSLB11 service collectd start
+
+	sudo docker cp /tmp/${TENANT_ID}/collectd.conf  1_EWLB11:/etc/collectd/
+	sudo docker exec -it ${TENANT_ID}_EWLB11 service collectd start
+
 }
+
+create_bridge_and_create_veth_pair()
+{
+	sudo brctl addbr ${TENANT_ID}_br14
+	sudo ip link set ${TENANT_ID}_br14 up
+	sudo ip link add ${TENANT_ID}_br14_NSLB11 type veth peer name ${TENANT_ID}_NSLB11_br14
+	sudo ip link add ${TENANT_ID}_br14_EWLB11 type veth peer name ${TENANT_ID}_EWLB11_br14
+
+	sudo ip link set dev ${TENANT_ID}_br14_NSLB11 up
+	sudo ip link set dev ${TENANT_ID}_br14_EWLB11 up
+	sudo ip link set dev ${TENANT_ID}_NSLB11_br14 up
+	sudo ip link set dev ${TENANT_ID}_NSLB11_br14 up
+
+	sudo ip link set ${TENANT_ID}_NSLB11_br14 netns ${TENANT_ID}_NSLB11
+	sudo ip link set ${TENANT_ID}_EWLB11_br14 netns ${TENANT_ID}_EWLB11
+	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_NSLB11
+	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_EWLB11
+ 
+	## create veth pair 
+	if [ "${HYPERVISOR_FLAG}" = "1" ];then
+		sudo ip link add ${TENANT_ID}_vxlan_frontend type veth peer name ${TENANT_ID}_frontend_vxlan
+		sudo ip link set dev ${TENANT_ID}_vxlan_frontend up
+		sudo ip link set dev ${TENANT_ID}_frontend_vxlan up
+		sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_vxlan_frontend
+	fi
+	
+}
+
+assign_static_ips_for_mngment_network()
+{
+	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.11/24 dev ${TENANT_ID}_NSLB11_br14
+	sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.12/24 dev ${TENANT_ID}_EWLB11_br14
+
+}
+
+
+create_vxlan_for_management_network()
+{
+	VXLAN_MANAGEMENT_ID=$VXLAN_ID + 2
+        if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        	sudo ip link add name ${TENANT_ID}_vxlan_mngment type vxlan id ${VXLAN_MANAGEMENT_ID} dev ens4 remote 192.168.149.3 dstport 4789
+	else
+        	sudo ip link add name ${TENANT_ID}_vxlan_mngment type vxlan id ${VXLAN_MANAGEMENT_ID} dev ens4 remote 192.168.149.6 dstport 4789
+	fi
+
+	sudo ip link set dev ${TENANT_ID}_vxlan_mngment up
+	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_vxlan_mngment 
+
+}
+
 
 # TODO 
 # 1. Create Servers as namespace
@@ -453,4 +507,11 @@ adding_masquerade_rules_to_lbs11
 adding_masquerade_rules_to_eslb11
 adding_masquerade_rules_to_tenant_namespace
 adding_filter_rules_to_tenant_namespace
+
+### add management network 
+create_bridge_and_create_veth_pair
+create_vxlan_for_management_network
+assign_static_ips_for_mngment_network
+
+### configure collectd on load balancers
 turn_collectd_service_on
