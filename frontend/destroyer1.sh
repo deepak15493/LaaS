@@ -109,7 +109,7 @@ destroy_networks
 destroy_veth_pairs
 destroy_name_spaces
 destroy_vxlan
-if [ "${TENANT_ID}" = 1 ];then
+if [ "${TENANT_ID}" = "1" ];then
 	sudo ip route del 192.168.41.0/24 dev gretun1
 	sudo ip route del 192.168.42.0/24 dev gretun1
 else
