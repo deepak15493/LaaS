@@ -39,17 +39,17 @@ def executeShellScriptsInHypervisors():
 
 	ssh = getSshInstanceFromParamiko(ipOfHypervisor1, userNameOfHypervisor1, passwordOfHypervisor1)
 	command_to_run_script = './configure_onetime.sh 1 192.168.149.6 192.168.149.3'
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
-        print(ssh_stdout.readlines())
+        #ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
+        #print(ssh_stdout.readlines())
 	command_to_run_script = './hypervisor1.sh 1 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         print(ssh_stdout.readlines())
         ssh.close()
 
 	ssh = getSshInstanceFromParamiko(ipOfHypervisor2, userNameOfHypervisor2, passwordOfHypervisor2)
-        command_to_run_script = './configure_onetime.sh 1 192.168.149.3 192.168.149.6'
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
-        print(ssh_stdout.readlines())
+        #command_to_run_script = './configure_onetime.sh 1 192.168.149.3 192.168.149.6'
+        #ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
+        #print(ssh_stdout.readlines())
         command_to_run_script = './hypervisor1.sh 2 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         print(ssh_stdout.readlines())
