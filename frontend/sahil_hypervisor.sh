@@ -425,9 +425,15 @@ create_bridge_and_create_veth_pair()
 
 assign_static_ips_for_mngment_network()
 {
-	sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.11/24 dev ${TENANT_ID}_NSLB11_br14
-	sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.12/24 dev ${TENANT_ID}_EWLB11_br14
+	if [ "${HYPERVISOR_FLAG}" = "1" ];then
+		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.51/24 dev ${TENANT_ID}_NSLB11_br14
+		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.52/24 dev ${TENANT_ID}_EWLB11_br14
+	else 
+		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.53/24 dev ${TENANT_ID}_NSLB11_br14
+		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.54/24 dev ${TENANT_ID}_EWLB11_br14
+		
 
+	fi
 }
 
 
