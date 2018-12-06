@@ -447,7 +447,7 @@ assign_static_ips_for_mngment_network()
 
 create_vxlan_for_management_network()
 {
-	VXLAN_MANAGEMENT_ID=$VXLAN_ID + 2
+	VXLAN_MANAGEMENT_ID=$(expr ${VXLAN_ID} + 2)
         if [ "${HYPERVISOR_FLAG}" = "1" ];then
         	sudo ip link add name ${TENANT_ID}_vxlan_mngment type vxlan id ${VXLAN_MANAGEMENT_ID} dev ens4 remote 192.168.149.3 dstport 4789
 	else
