@@ -419,6 +419,7 @@ create_bridge_and_create_veth_pair()
 		sudo ip link set dev ${TENANT_ID}_vxlan_frontend up
 		sudo ip link set dev ${TENANT_ID}_frontend_vxlan up
 		sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_vxlan_frontend
+		sudo brctl addif bridge43 ${TENANT_ID}_frontend_vxlan
 	fi
 	
 }
@@ -449,6 +450,11 @@ create_vxlan_for_management_network()
 	sudo ip link set dev ${TENANT_ID}_vxlan_mngment up
 	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_vxlan_mngment 
 
+}
+
+restart_collectd_server()
+{
+	service collectd restart
 }
 
 
@@ -521,3 +527,4 @@ assign_static_ips_for_mngment_network
 
 ### configure collectd on load balancers
 turn_collectd_service_on
+restart_collectd_server
