@@ -410,6 +410,10 @@ create_bridge_and_create_veth_pair()
 
 	sudo ip link set ${TENANT_ID}_NSLB11_br14 netns ${TENANT_ID}_NSLB11
 	sudo ip link set ${TENANT_ID}_EWLB11_br14 netns ${TENANT_ID}_EWLB11
+
+	sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set  ${TENANT_ID}_NSLB11_br14 up
+	sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set  ${TENANT_ID}_EWLB11_br14 up
+
 	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_NSLB11
 	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_EWLB11
  
