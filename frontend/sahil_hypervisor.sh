@@ -432,8 +432,8 @@ assign_static_ips_for_mngment_network()
 	if [ "${HYPERVISOR_FLAG}" = "1" ];then
 		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.51/24 dev ${TENANT_ID}_NSLB11_br14
 		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.52/24 dev ${TENANT_ID}_EWLB11_br14
-		sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set ${TENANT_ID}_EWLB11_br14 up 
-		sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set ${TENANT_ID}_NSLB11_br14 up 
+		sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set ${TENANT_ID}_NSLB11_br14 up 
+		sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set ${TENANT_ID}_EWLB11_br14 up 
 	else 
 		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.53/24 dev ${TENANT_ID}_NSLB11_br14
 		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.54/24 dev ${TENANT_ID}_EWLB11_br14
