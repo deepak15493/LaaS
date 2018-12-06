@@ -112,6 +112,7 @@ destroy_vxlan(){
 
 destroy_management_network()
 {
+	sudo ifconfig ${TENANT_ID}_br14 down
 	sudo brctl delbr ${TENANT_ID}_br14 
 	sudo ip link del ${TENANT_ID}_NSLB11_br14
 	sudo ip link del ${TENANT_ID}_EWLB11_br14
