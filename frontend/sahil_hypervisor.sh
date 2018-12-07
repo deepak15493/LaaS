@@ -410,6 +410,10 @@ create_bridge_and_create_veth_pair()
 
 	sudo ip link set ${TENANT_ID}_NSLB11_br14 netns ${TENANT_ID}_NSLB11
 	sudo ip link set ${TENANT_ID}_EWLB11_br14 netns ${TENANT_ID}_EWLB11
+
+	sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set  ${TENANT_ID}_NSLB11_br14 up
+	sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set  ${TENANT_ID}_EWLB11_br14 up
+
 	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_NSLB11
 	sudo brctl addif ${TENANT_ID}_br14 ${TENANT_ID}_br14_EWLB11
  
@@ -429,9 +433,13 @@ assign_static_ips_for_mngment_network()
 	if [ "${HYPERVISOR_FLAG}" = "1" ];then
 		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.51/24 dev ${TENANT_ID}_NSLB11_br14
 		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.52/24 dev ${TENANT_ID}_EWLB11_br14
+		sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set ${TENANT_ID}_NSLB11_br14 up 
+		sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set ${TENANT_ID}_EWLB11_br14 up 
 	else 
 		sudo ip netns exec ${TENANT_ID}_NSLB11 ip addr add 192.168.91.53/24 dev ${TENANT_ID}_NSLB11_br14
 		sudo ip netns exec ${TENANT_ID}_EWLB11 ip addr add 192.168.91.54/24 dev ${TENANT_ID}_EWLB11_br14
+		sudo ip netns exec ${TENANT_ID}_NSLB11 ip link set ${TENANT_ID}_NSLB11_br14
+		sudo ip netns exec ${TENANT_ID}_EWLB11 ip link set ${TENANT_ID}_EWLB11_br14
 		
 
 	fi
@@ -440,7 +448,7 @@ assign_static_ips_for_mngment_network()
 
 create_vxlan_for_management_network()
 {
-	VXLAN_MANAGEMENT_ID=$VXLAN_ID + 2
+	VXLAN_MANAGEMENT_ID=$(expr ${VXLAN_ID} + 2)
         if [ "${HYPERVISOR_FLAG}" = "1" ];then
         	sudo ip link add name ${TENANT_ID}_vxlan_mngment type vxlan id ${VXLAN_MANAGEMENT_ID} dev ens4 remote 192.168.149.3 dstport 4789
 	else
