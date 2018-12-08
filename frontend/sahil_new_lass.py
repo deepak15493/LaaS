@@ -44,9 +44,9 @@ def executeShellScriptsInHypervisors():
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         #print(ssh_stdout.readlines())
 	if(tenant_id == 1):
-		command_to_run_script = './hypervisor1.sh 1 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
+		command_to_run_script = './sahil_hypervisor.sh 1 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
 	else: 
-		command_to_run_script = './hypervisor1.sh 1 2 192.168.60.2 192.168.60.3 60 192.168.61.2 192.168.61.3 192.168.62.2 192.168.62.3'
+		command_to_run_script = './sahil_hypervisor.sh 1 2 192.168.60.2 192.168.60.3 60 192.168.61.2 192.168.61.3 192.168.62.2 192.168.62.3'
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         print(ssh_stdout.readlines())
         ssh.close()
@@ -56,9 +56,9 @@ def executeShellScriptsInHypervisors():
         #ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         #print(ssh_stdout.readlines())
 	if(tenant_id == 1):
-	        command_to_run_script = './hypervisor1.sh 2 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
+	        command_to_run_script = './sahil_hypervisor.sh 2 1 192.168.40.2 192.168.40.3 50 192.168.41.2 192.168.41.3 192.168.42.2 192.168.42.3'
 	else:
-	        command_to_run_script = './hypervisor1.sh 2 2 192.168.60.2 192.168.60.3 60 192.168.61.2 192.168.61.3 192.168.62.2 192.168.62.3'
+	        command_to_run_script = './sahil_hypervisor.sh 2 2 192.168.60.2 192.168.60.3 60 192.168.61.2 192.168.61.3 192.168.62.2 192.168.62.3'
 		
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command_to_run_script)
         print(ssh_stdout.readlines())
