@@ -318,8 +318,7 @@ create_gre()
     echo "Done creating gre tunnel "
 }
 
-adding_masquerade_rules_to_lbs11()
-{
+adding_icmp_masquerade_rules_to_lbs11(){
     if [ "${HYPERVISOR_FLAG}" = "1" ];then
         sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.130.1
         sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
@@ -333,7 +332,28 @@ adding_masquerade_rules_to_lbs11()
         sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
         sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
     fi
+}
 
+adding_tcp_masquerade_rules_to_lbs11(){
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.130.1
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.130.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
+    else
+        sudo ip netns exec ${TENANT_ID}_NSLB11 ip route add default via 192.168.135.1
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m state --state NEW  -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+        sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.135.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54
+    fi
+}
+
+adding_masquerade_rules_to_lbs11()
+{
+    adding_icmp_masquerade_rules_to_lbs11
+    adding_tcp_masquerade_rules_to_lbs11
     sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I POSTROUTING  ! -s 192.168.80.0/24 -j MASQUERADE
     sudo ip netns exec ${TENANT_ID}_NSLB11 iptables -t nat -I POSTROUTING  -s 192.168.80.0/24  -j MASQUERADE
 }
@@ -344,7 +364,7 @@ adding_filter_rules_to_tenant_namespace(){
 
 }
 
-adding_masquerade_rules_to_tenant_namespace(){
+adding_icmp_masquerade_rules_to_tenant_namespace(){
      if [ "${HYPERVISOR_FLAG}" = "1" ];then
         sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
 
@@ -355,8 +375,23 @@ adding_masquerade_rules_to_tenant_namespace(){
     fi
 }
 
-adding_masquerade_rules_to_eslb11()
-{
+adding_tcp_masquerade_rules_to_tenant_namespace(){
+     if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+        sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
+    else
+        sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${REMOTE_TENANT_PUBLIC_IP} -m state --state NEW -j DNAT --to-destination 192.168.135.2
+   
+    fi
+}
+
+adding_masquerade_rules_to_tenant_namespace(){
+    adding_icmp_masquerade_rules_to_tenant_namespace
+    adding_tcp_masquerade_rules_to_tenant_namespace
+}
+
+adding_icmp_masquerade_rules_to_eslb11(){
     if [ "${HYPERVISOR_FLAG}" = "1" ];then
         sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
         sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
@@ -368,6 +403,26 @@ adding_masquerade_rules_to_eslb11()
         sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
         sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
     fi
+}
+
+adding_tcp_masquerade_rules_to_eslb11(){
+    if [ "${HYPERVISOR_FLAG}" = "1" ];then
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2  -m state --state NEW -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2  -m state --state NEW -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2  -m state --state NEW -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.2  -m state --state NEW -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
+    else
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3  -m state --state NEW -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.90.51
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3  -m state --state NEW -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.90.52
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3  -m state --state NEW -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.90.53
+        sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_appbr13veth1 -d 192.168.85.3  -m state --state NEW -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.90.54
+    fi
+}
+
+adding_masquerade_rules_to_eslb11()
+{
+    adding_icmp_masquerade_rules_to_eslb11
+    adding_tcp_masquerade_rules_to_eslb11
     sudo ip netns exec ${TENANT_ID}_EWLB11 iptables -t nat -I POSTROUTING  -s 192.168.85.0/24 -j MASQUERADE
 }
 
