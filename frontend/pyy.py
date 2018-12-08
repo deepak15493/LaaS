@@ -4,11 +4,12 @@ import numpy as np
 
 style.use('ggplot')
 
-x,y = np.loadtxt('/var/lib/collectd/csv/05678779d3e7/cpu-0/cpu-idle-2018-12-06', unpack = True, delimiter = ',', skiprows=1 )
+x,y = np.loadtxt('/var/lib/collectd/csv/e74a0b35873c/cpu-0/cpu-system-2018-12-07', unpack = True, delimiter = ',', skiprows=1 )
 
 
 plt.plot(x, y)
-plt.savefig('sahil')
+plt.savefig('my_NS_LB11')
+
 #print x
 #print y
 
