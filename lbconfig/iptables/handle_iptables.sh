@@ -61,10 +61,8 @@ add_new_veth_pairs(){
 
 }
 
-cron_expand_iptables(){
+cron_expand_icmp_iptables(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
-
-    sudo ip netns exec TEN${TENANT_ID} iptables -F PREROUTING -t nat
     if [ "${NEW_NAMESPACE}" != "" ];then
 		# Applying rules for increasing to 2 NSLB's
 		
@@ -82,10 +80,35 @@ cron_expand_iptables(){
     fi
 }
 
-cron_contract_iptables(){
+cron_expand_tcp_iptables(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
+    if [ "${NEW_NAMESPACE}" != "" ];then
+		# Applying rules for increasing to 2 NSLB's
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 1 -j DNAT --to-destination 192.168.131.2
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 2 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
+    else
+		# Applying rules for 1 decreasing to 1 NSLB
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
+    
+    fi
+}
+
+cron_expand_iptables(){
 
     sudo ip netns exec TEN${TENANT_ID} iptables -F PREROUTING -t nat
+    cron_expand_icmp_iptables
+    cron_expand_tcp_iptables
+}
+
+cron_contract_icmp_iptables(){
+    NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
+
     if [ "${NEW_NAMESPACE}" != "" ];then
 		# Applying rules for increasing to 2 NSLB's
 		
@@ -99,6 +122,46 @@ cron_contract_iptables(){
 
     fi
 }
+
+
+cron_contract_tcp_iptables(){
+    NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"  | cut -f 1 -d ' ' | xargs`
+
+    if [ "${NEW_NAMESPACE}" != "" ];then
+		# Applying rules for increasing to 2 NSLB's
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination 192.168.131.2
+		
+    else
+		# Applying rules for 1 decreasing to 1 NSLB
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -j DNAT --to-destination 192.168.130.2
+
+    fi
+}
+
+cron_contract_iptables(){
+    sudo ip netns exec TEN${TENANT_ID} iptables -F PREROUTING -t nat
+    cron_contract_icmp_iptables
+    cron_contract_tcp_iptables
+}
+
+apply_icmp_iptable_new_northsouth_namespace(){
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54 
+}
+
+apply_tcp_iptable_new_northsouth_namespace(){
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
+    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p tcp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m state --state NEW -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54 
+}
+
+
 apply_iptable_new_northsouth_namespace(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-" | cut -f 1 -d ' ' | xargs`
 
@@ -112,13 +175,11 @@ apply_iptable_new_northsouth_namespace(){
     NSLB_S14="192.168.80.54"
 
     sudo ip netns exec ${NEW_NAMESPACE} ip route add default via 192.168.131.1
-    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 0 -j DNAT --to-destination 192.168.80.51
-    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 1 -j DNAT --to-destination 192.168.80.52
-    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 2 -j DNAT --to-destination 192.168.80.53
-    sudo ip netns exec ${NEW_NAMESPACE} iptables -t nat -I PREROUTING -p icmp -i ${TENANT_ID}_nslb11veth1 -d 192.168.131.2 -m statistic --mode nth --every 4 --packet 3 -j DNAT --to-destination 192.168.80.54 
+    apply_icmp_iptable_new_northsouth_namespace
+    apply_tcp_iptable_new_northsouth_namespace
 }
 
-apply_iptable_tenant_namespace(){
+apply_icmp_iptable_tenant_namespace(){
     NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"`
 
     if [ "${NEW_NAMESPACE}" != "" ];then
@@ -136,6 +197,31 @@ apply_iptable_tenant_namespace(){
 		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p icmp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
     
     fi
+}
+
+apply_tcp_iptable_tenant_namespace(){
+    NEW_NAMESPACE=`sudo ip netns list | grep "${TENANT_ID}-"`
+
+    if [ "${NEW_NAMESPACE}" != "" ];then
+		# Applying rules for increasing to 2 NSLB's
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 1 -j DNAT --to-destination 192.168.131.2
+		
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 3 --packet 2 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
+    else
+		# Applying rules for 1 decreasing to 1 NSLB
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.130.2
+
+		sudo ip netns exec TEN${TENANT_ID} iptables -t nat -I PREROUTING -p tcp -i ten${TENANT_ID}veth1 -d ${TENANT_PUBLIC_IP} -m state --state NEW -m statistic --mode nth --every 2 --packet 1 -j DNAT --to-destination ${REMOTE_TENANT_PUBLIC_IP}
+    
+    fi
+}
+
+apply_iptable_tenant_namespace(){
+    apply_icmp_iptable_tenant_namespace
+    apply_tcp_iptable_tenant_namespace
 }
 
 
