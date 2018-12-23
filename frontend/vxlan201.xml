@@ -1,0 +1,6 @@
+<network>
+  <name>vxlan201</name>
+  <forward mode='bridge'/>
+  <bridge name='vxlanbr201'/>
+</network>
+

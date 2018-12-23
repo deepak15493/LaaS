@@ -1,0 +1,148 @@
+destroy_lbs()
+{
+    echo "Destroying all lbs"
+#    virsh destroy S11
+ #   virsh destroy S12
+  #  virsh destroy T11
+   # virsh destroy T12
+
+    echo "Undefining all lbs"
+  #  virsh undefine S11  --remove-all-storage
+  #  virsh undefine S12  --remove-all-storage
+  #  virsh undefine T11  --remove-all-storage
+  #  virsh undefine T12  --remove-all-storage
+    sudo ip netns del TEN${TENANT_ID}
+    sudo ip netns del S11TEN${TENANT_ID}
+    sudo ip netns del S12TEN${TENANT_ID}
+    sudo ip netns del T11TEN${TENANT_ID}
+    sudo ip netns del T12TEN${TENANT_ID}
+}
+
+destroy_docker() {
+    #sudo docker stop TEN${TENANT_ID}
+    #sudo docker rm TEN${TENANT_ID}
+
+
+    sudo docker stop ${TENANT_ID}_NSLB11
+    sudo docker rm ${TENANT_ID}_NSLB11
+   
+    sudo docker stop ${TENANT_ID}_EWLB11
+    sudo docker rm ${TENANT_ID}_EWLB11
+
+		
+    sudo docker stop S11TEN${TENANT_ID}
+    sudo docker rm S11TEN${TENANT_ID}
+
+    sudo docker stop S12TEN${TENANT_ID}
+    sudo docker rm S12TEN${TENANT_ID}
+
+    sudo docker stop T11TEN${TENANT_ID}
+    sudo docker rm T11TEN${TENANT_ID}
+
+    sudo docker stop T12TEN${TENANT_ID}
+    sudo docker rm T12TEN${TENANT_ID}
+
+    sudo ip netns del TEN${TENANT_ID}
+    sudo ip netns del S11TEN${TENANT_ID}
+    sudo ip netns del S12TEN${TENANT_ID}
+    sudo ip netns del T11TEN${TENANT_ID}
+    sudo ip netns del T12TEN${TENANT_ID}
+
+    #sudo rm -r /var/run/netns/TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/S11TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/S12TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/T11TEN${TENANT_ID}
+    sudo rm -r /var/run/netns/T12TEN${TENANT_ID}
+}
+
+destroy_networks()
+{
+   virsh net-destroy network11 
+   virsh net-destroy network12
+   virsh net-destroy network13
+
+   virsh net-undefine network11
+   virsh net-undefine network12
+   virsh net-undefine network13
+   
+   sudo ip link set dev ${TENANT_ID}_br11 down
+   sudo ip link set dev ${TENANT_ID}_br12 down
+   sudo ip link set dev ${TENANT_ID}_br13 down
+
+   sudo brctl delbr ${TENANT_ID}_br11
+   sudo brctl delbr ${TENANT_ID}_br12
+   sudo brctl delbr ${TENANT_ID}_br13
+}
+
+destroy_name_spaces()
+{
+    sudo ip netns del ${TENANT_ID}_NSLB11
+    sudo ip netns del ${TENANT_ID}_EWLB11
+}
+
+destroy_veth_pairs()
+{
+    sudo ip link del ${TENANT_ID}_databr12veth0
+    sudo ip link del ${TENANT_ID}_nslb11veth0 
+    sudo ip link del ${TENANT_ID}_appbr11veth0
+    sudo ip link del ${TENANT_ID}_appbr13veth0 
+    sudo ip link del s1br11${TENANT_ID} 
+    sudo ip link del s1br13${TENANT_ID}
+    sudo ip link del s2br11${TENANT_ID} 
+    sudo ip link del s2br13${TENANT_ID} 
+    sudo ip link del t1br12${TENANT_ID}
+    sudo ip link del t2br12${TENANT_ID}
+    sudo ip link del br11s1${TENANT_ID} 
+    sudo ip link del br13s1${TENANT_ID}
+    sudo ip link del br11s2${TENANT_ID} 
+    sudo ip link del br13s2${TENANT_ID} 
+    sudo ip link del br12t1${TENANT_ID}
+    sudo ip link del br12t2${TENANT_ID}
+    sudo ip link del ten${TENANT_ID}veth0 
+    sudo ip link del ten${TENANT_ID}greveth0
+    sudo ip link del ten${TENANT_ID}greveth1
+}
+
+
+destroy_vxlan(){
+	sudo ip link del ${TENANT_ID}_vxlanfrontend 
+	sudo ip link del ${TENANT_ID}_vxlanbackend 
+	
+}
+
+destroy_management_network()
+{
+	sudo ifconfig ${TENANT_ID}_br14 down
+	sudo brctl delbr ${TENANT_ID}_br14 
+	sudo ip link del ${TENANT_ID}_NSLB11_br14
+	sudo ip link del ${TENANT_ID}_EWLB11_br14
+	sudo ip link del ${TENANT_ID}_br14_NSLB11
+	sudo ip link del ${TENANT_ID}_br14_EWLB11
+
+	sudo ip link del ${TENANT_ID}_vxlan_mngment
+	sudo ip link del ${TENANT_ID}_vxlan_fntend
+	sudo ip link del ${TENANT_ID}_fntend_vxlan
+}
+
+
+if [ -z "$1" ];then
+	echo "Tenant ID parameter is missing"
+	exit 1
+fi
+
+TENANT_ID=$1
+destroy_docker
+destroy_lbs
+destroy_networks
+destroy_veth_pairs
+destroy_name_spaces
+destroy_vxlan
+if [ "${TENANT_ID}" = "1" ];then
+	sudo ip route del 192.168.41.0/24 dev gretun1
+	sudo ip route del 192.168.42.0/24 dev gretun1
+else
+	sudo ip route del 192.168.61.0/24 dev gretun1
+	sudo ip route del 192.168.62.0/24 dev gretun1
+fi
+destroy_management_network
+#sudo ip link del gretun1
